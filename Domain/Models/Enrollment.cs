@@ -9,11 +9,4 @@ namespace ELProject.Domain.Models
         public DateTime EnrollDate { get; set; }
         public bool IsCompleted { get; set; }
     }
-
-    // GET api?iscompleted=true&enrollmentdate=""
-    public class EnrollmentFilter
-    {
-        public bool? IsCompleted{get;set;}
-        public DateTime? EnrollDate { get; set; }
-    }
 }
