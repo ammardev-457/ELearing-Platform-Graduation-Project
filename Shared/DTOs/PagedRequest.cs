@@ -1,14 +1,14 @@
 
 namespace ELProject.Shared.DTOs
 {
-    public class PagedRequest
+    public class PaginationParameters
     {
 
-        private int _pagedSize = 10;
+        private int _pageSize = 10;
         public int PagedSize
         {
-            get => _pagedSize;
-            set => _pagedSize = value switch
+            get => _pageSize;
+            set => _pageSize = value switch
             {
                 < 1 => 1,
                 > 50 => 50,
@@ -16,12 +16,12 @@ namespace ELProject.Shared.DTOs
             };
         }
 
-        private int _pagedNumber = 1;
+        private int _pageNumber = 1;
 
         public int PagedNumber
         {
-            get => _pagedNumber;
-            set => _pagedNumber = value < 1 ? 1 : value;
+            get => _pageNumber;
+            set => _pageNumber = value < 1 ? 1 : value;
         }
     }
 
