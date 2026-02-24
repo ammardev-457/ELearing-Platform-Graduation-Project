@@ -8,26 +8,31 @@ namespace ELProject.DataAccess.Configurations
     {
         public void Configure(EntityTypeBuilder<Enrollment> builder)
         {
-            // Composite Primary Key
             builder.HasKey(e => new { e.UserId, e.CourseId });
 
-            // Properties
             builder.Property(e => e.EnrollDate)
                 .HasDefaultValueSql("GETUTCDATE()");
 
             builder.Property(e => e.IsCompleted)
                 .HasDefaultValue(false);
 
-            // Relationships
+            builder.Property(e => e.Progress)
+                .HasPrecision(5, 2); // 100.00 (5)
+
             builder.HasOne(e => e.User)
                 .WithMany(u => u.Enrollments)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade); // حذف المستخدم يحذف اشتراكاته
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(e => e.Course)
                 .WithMany(c => c.Enrollments)
                 .HasForeignKey(e => e.CourseId)
-                .OnDelete(DeleteBehavior.Restrict); // حذف الكورس لا يجب أن يتم إذا كان هناك طلاب
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(e => e.Payment)
+                .WithOne(p => p.Enrollment)
+                .HasForeignKey<Enrollment>(e => e.PaymentId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

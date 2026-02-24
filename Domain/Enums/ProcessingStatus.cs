@@ -7,5 +7,4 @@ namespace ELProject.Domain.Enums
         Ready,      // جاهز للمشاهدة
         Failed      // حصل خطأ في الرفع
     }
-
 }

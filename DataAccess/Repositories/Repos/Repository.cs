@@ -13,7 +13,6 @@ namespace ELProject.DataAccess.Repositories.Repos
             _dbSet = context.Set<T>();
         }
         
-        
         public async Task<T?> GetByIdAsync(TKey id)
         {
             return await _dbSet.FindAsync(id);
@@ -24,7 +23,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             await _dbSet.AddAsync(entity);
         }
 
-        public async Task<PagedResult<T>> GetAsync(
+        public async Task<PaginationResult<T>> GetAsync(
             Expression<Func<T, bool>>? filter, 
             int pageNumber, 
             int pageSize)
@@ -43,7 +42,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new PagedResult<T>{TotalCount = total, Items = items};
+            return new PaginationResult<T>{TotalCount = total, Items = items};
         }
 
         public void Remove(T entity)

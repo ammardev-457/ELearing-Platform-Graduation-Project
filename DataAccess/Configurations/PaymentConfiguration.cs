@@ -10,7 +10,6 @@ namespace ELProject.DataAccess.Configurations
         {
             builder.HasKey(p => p.Id);
 
-            // Properties
             builder.Property(p => p.Amount)
                 .HasColumnType("decimal(18,2)")
                 .IsRequired();
@@ -18,34 +17,41 @@ namespace ELProject.DataAccess.Configurations
             builder.Property(p => p.Currency)
                 .IsRequired()
                 .HasMaxLength(3)
-                .IsFixedLength(); // e.g. "USD", "EGP"
+                .IsFixedLength();
 
             builder.Property(p => p.Gateway)
                 .IsRequired()
-                .HasMaxLength(50); // "Stripe", "PayPal"
+                .HasMaxLength(50);
 
             builder.Property(p => p.GatewayCheckoutSessionId)
                 .IsRequired()
                 .HasMaxLength(255);
 
+            builder.HasIndex(p => p.GatewayCheckoutSessionId)
+                .IsUnique();
+
+            builder.Property(p => p.PaymentIntentId)
+                .HasMaxLength(255);
+
             builder.Property(p => p.Status)
-                .HasConversion<string>() // Enum
+                .HasConversion<string>()
                 .HasMaxLength(20);
 
             builder.Property(p => p.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            // Relationships
-            builder.HasOne(p => p.User)
+            builder.Property(p => p.UpdateTime)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            builder.HasOne(p => p.Student)
                 .WithMany(u => u.Payments)
-                .HasForeignKey(p => p.UserId)
-                .OnDelete(DeleteBehavior.NoAction); // الحفاظ على سجل المدفوعات
+                .HasForeignKey(p => p.StudentId)
+                .OnDelete(DeleteBehavior.Restrict );
 
             builder.HasOne(p => p.Course)
                 .WithMany(c => c.Payments)
                 .HasForeignKey(p => p.CourseId)
-                .IsRequired(false) // لأن الـ Property في الكلاس nullable
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

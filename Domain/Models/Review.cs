@@ -14,11 +14,4 @@ namespace ELProject.Domain.Models
         public int CourseId { get; set; }
         public Course Course { get; set; } = null!;
     }
-    public class ReviewFilter
-    {
-        public int? Rating { get; set; } 
-        public DateTime? CreatedAt { get; set; }
-    }
-
-
 }
