@@ -17,12 +17,12 @@ namespace ELProject.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.3")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ELProject.Models.ApplicationUser", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -41,14 +41,9 @@ namespace ELProject.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Gender")
+                    b.Property<int?>("Gender")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("JoinDate")
                         .ValueGeneratedOnAdd()
@@ -105,7 +100,7 @@ namespace ELProject.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("ELProject.Models.Category", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -123,7 +118,7 @@ namespace ELProject.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Course", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Course", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -168,7 +163,7 @@ namespace ELProject.Migrations
                     b.ToTable("Courses");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Enrollment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Enrollment", b =>
                 {
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
@@ -176,24 +171,44 @@ namespace ELProject.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("EnrollDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int?>("PaymentId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Progress")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.HasKey("UserId", "CourseId");
 
                     b.HasIndex("CourseId");
 
+                    b.HasIndex("PaymentId")
+                        .IsUnique()
+                        .HasFilter("[PaymentId] IS NOT NULL");
+
                     b.ToTable("Enrollments");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Lesson", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Lesson", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -250,7 +265,7 @@ namespace ELProject.Migrations
                     b.ToTable("Lessons");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Payment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Payment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -261,7 +276,7 @@ namespace ELProject.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("CourseId")
+                    b.Property<int>("CourseId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -285,25 +300,37 @@ namespace ELProject.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("PaymentIntentId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("UserId")
+                    b.Property<string>("StudentId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UpdateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("GatewayCheckoutSessionId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId");
 
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Question", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Question", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -340,7 +367,36 @@ namespace ELProject.Migrations
                     b.ToTable("Questions");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Review", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TimeLimitInMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("TotalMarks")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("Quizzes");
+                });
+
+            modelBuilder.Entity("ELProject.Domain.Models.Review", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -376,7 +432,7 @@ namespace ELProject.Migrations
                     b.ToTable("Reviews");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Section", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Section", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -399,7 +455,7 @@ namespace ELProject.Migrations
                     b.ToTable("Sections");
                 });
 
-            modelBuilder.Entity("ELProject.Models.StudentQuiz", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.StudentQuiz", b =>
                 {
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
@@ -555,44 +611,15 @@ namespace ELProject.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Quiz", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Course", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CourseId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TimeLimitInMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("TotalMarks")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseId");
-
-                    b.ToTable("Quizzes");
-                });
-
-            modelBuilder.Entity("ELProject.Models.Course", b =>
-                {
-                    b.HasOne("ELProject.Models.Category", "Category")
+                    b.HasOne("ELProject.Domain.Models.Category", "Category")
                         .WithMany("Courses")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ELProject.Models.ApplicationUser", "User")
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "User")
                         .WithMany("CreatedCourses")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -603,15 +630,20 @@ namespace ELProject.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Enrollment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Enrollment", b =>
                 {
-                    b.HasOne("ELProject.Models.Course", "Course")
+                    b.HasOne("ELProject.Domain.Models.Course", "Course")
                         .WithMany("Enrollments")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ELProject.Models.ApplicationUser", "User")
+                    b.HasOne("ELProject.Domain.Models.Payment", "Payment")
+                        .WithOne("Enrollment")
+                        .HasForeignKey("ELProject.Domain.Models.Enrollment", "PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "User")
                         .WithMany("Enrollments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -619,17 +651,19 @@ namespace ELProject.Migrations
 
                     b.Navigation("Course");
 
+                    b.Navigation("Payment");
+
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Lesson", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Lesson", b =>
                 {
-                    b.HasOne("Quiz", "Quiz")
+                    b.HasOne("ELProject.Domain.Models.Quiz", "Quiz")
                         .WithMany()
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("ELProject.Models.Section", "Section")
+                    b.HasOne("ELProject.Domain.Models.Section", "Section")
                         .WithMany("Lessons")
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -640,27 +674,28 @@ namespace ELProject.Migrations
                     b.Navigation("Section");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Payment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Payment", b =>
                 {
-                    b.HasOne("ELProject.Models.Course", "Course")
+                    b.HasOne("ELProject.Domain.Models.Course", "Course")
                         .WithMany("Payments")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("ELProject.Models.ApplicationUser", "User")
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "Student")
                         .WithMany("Payments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Course");
 
-                    b.Navigation("User");
+                    b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Question", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Question", b =>
                 {
-                    b.HasOne("Quiz", "Quiz")
+                    b.HasOne("ELProject.Domain.Models.Quiz", "Quiz")
                         .WithMany("Questions")
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -669,15 +704,26 @@ namespace ELProject.Migrations
                     b.Navigation("Quiz");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Review", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>
                 {
-                    b.HasOne("ELProject.Models.Course", "Course")
+                    b.HasOne("ELProject.Domain.Models.Course", "Course")
+                        .WithMany("Quizzes")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("ELProject.Domain.Models.Review", b =>
+                {
+                    b.HasOne("ELProject.Domain.Models.Course", "Course")
                         .WithMany("Reviews")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ELProject.Models.ApplicationUser", "User")
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "User")
                         .WithMany("Reviews")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
@@ -688,9 +734,9 @@ namespace ELProject.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Section", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Section", b =>
                 {
-                    b.HasOne("ELProject.Models.Course", "Course")
+                    b.HasOne("ELProject.Domain.Models.Course", "Course")
                         .WithMany("Sections")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -699,15 +745,15 @@ namespace ELProject.Migrations
                     b.Navigation("Course");
                 });
 
-            modelBuilder.Entity("ELProject.Models.StudentQuiz", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.StudentQuiz", b =>
                 {
-                    b.HasOne("Quiz", "Quiz")
+                    b.HasOne("ELProject.Domain.Models.Quiz", "Quiz")
                         .WithMany("StudentQuizzes")
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ELProject.Models.ApplicationUser", "User")
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "User")
                         .WithMany("StudentQuizzes")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -729,7 +775,7 @@ namespace ELProject.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("ELProject.Models.ApplicationUser", null)
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -738,7 +784,7 @@ namespace ELProject.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("ELProject.Models.ApplicationUser", null)
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -753,7 +799,7 @@ namespace ELProject.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ELProject.Models.ApplicationUser", null)
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -762,25 +808,14 @@ namespace ELProject.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("ELProject.Models.ApplicationUser", null)
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Quiz", b =>
-                {
-                    b.HasOne("ELProject.Models.Course", "Course")
-                        .WithMany("Quizzes")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-                });
-
-            modelBuilder.Entity("ELProject.Models.ApplicationUser", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.ApplicationUser", b =>
                 {
                     b.Navigation("CreatedCourses");
 
@@ -793,12 +828,12 @@ namespace ELProject.Migrations
                     b.Navigation("StudentQuizzes");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Category", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Category", b =>
                 {
                     b.Navigation("Courses");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Course", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Course", b =>
                 {
                     b.Navigation("Enrollments");
 
@@ -811,16 +846,21 @@ namespace ELProject.Migrations
                     b.Navigation("Sections");
                 });
 
-            modelBuilder.Entity("ELProject.Models.Section", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Payment", b =>
                 {
-                    b.Navigation("Lessons");
+                    b.Navigation("Enrollment");
                 });
 
-            modelBuilder.Entity("Quiz", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>
                 {
                     b.Navigation("Questions");
 
                     b.Navigation("StudentQuizzes");
+                });
+
+            modelBuilder.Entity("ELProject.Domain.Models.Section", b =>
+                {
+                    b.Navigation("Lessons");
                 });
 #pragma warning restore 612, 618
         }

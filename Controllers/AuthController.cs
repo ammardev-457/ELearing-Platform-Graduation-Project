@@ -1,6 +1,8 @@
-﻿using ELProject.Domain.Models;
+﻿using ELProject.DataAccess.Repositories.Repos;
+using ELProject.Domain.Models;
 using ELProject.Shared;
 using ELProject.Shared.DTOs;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,19 +20,22 @@ namespace ELProject.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IConfiguration config;
+        private readonly AuthRepository authRepo;
         private readonly IFileStorageService fileStorageService;
 
         public AuthController(UserManager<ApplicationUser> _userManager, 
-            IConfiguration _config, 
+            IConfiguration _config,
+            AuthRepository _authRepo,
             IFileStorageService _fileStorageService)
         {
             userManager = _userManager; // To access User and Role Tables in Db
             config = _config; // To access appsettings.json
+            authRepo = _authRepo; // To Access GetTokenAsync Method
             fileStorageService = _fileStorageService;
             // To save profile image file on server (or cloud) and return its path to store in DB
         }
 
-        [HttpPost("Register")] // api/Account/Register
+        [HttpPost("Register")] // api/Auth/Register
         public async Task<IActionResult> Register([FromForm]RegisterDto UserDto)
         {
             if (ModelState.IsValid)
@@ -65,7 +70,7 @@ namespace ELProject.Controllers
         }
 
 
-        [HttpPost("Login")] // api/Account/Login
+        [HttpPost("Login")] // api/Auth/Login
         public async Task<IActionResult> Login(LoginDto userFromRequest)
         {
             if (ModelState.IsValid)
@@ -79,46 +84,42 @@ namespace ELProject.Controllers
 
                     if (isValid)
                     {
-                        //--------------Generate Token (JWT)---------------
-                        // Add Claims										
-                        List<Claim> UserClaims = new List<Claim>();
-                        UserClaims.Add(new Claim(ClaimTypes.NameIdentifier, userFromDb.Id));
-                        UserClaims.Add(new Claim(ClaimTypes.Name, userFromDb.UserName));
+                        // Generate Token
+                        var MyToken = await authRepo.GetTokenAsync(userFromDb);
 
-                        IList<string> UserRoles = await userManager.GetRolesAsync(userFromDb);
-                        foreach (var roleName in UserRoles)
-                            UserClaims.Add(new Claim(ClaimTypes.Role, roleName));
-
-                        UserClaims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
-
-                        // Generate Key for Signature														
-                        SymmetricSecurityKey key
-                            = new(Encoding.UTF8.GetBytes(config["JWT:Key"]));
-
-                        SigningCredentials signCred
-                            = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                        // Design Token
-                        JwtSecurityToken myToken = new JwtSecurityToken(
-                            issuer: config["JWT:Issuer"],
-                            audience: config["JWT:Audience"],
-                            expires: DateTime.Now.AddHours(1),
-                            claims: UserClaims,
-                            signingCredentials: signCred
-                        );
-
-                        // Generate Token and return it(as a string) in response
-                        return Ok(new
-                        {
-                            token = new JwtSecurityTokenHandler().WriteToken(myToken), // Token returned as a string
-                            expiration = DateTime.Now.AddHours(1) // or myToken.ValidTo
-                        });
-
+                        return Ok(new { token = MyToken });
                     }
                 }
                 ModelState.AddModelError("Username", "Username or Password Invalid.");
             }
             return BadRequest(ModelState);
+        }
+
+
+        [HttpPost("External-Login")]
+        public async Task<IActionResult> ExternalLogin(ExternalLoginDto model)
+        {
+            var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken);
+
+            var email = payload.Email;
+
+            var user = await userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    Email = email,
+                    EmailConfirmed = true
+                };
+
+                await userManager.CreateAsync(user);
+                await userManager.AddToRoleAsync(user, model.Role.ToString());
+            }
+
+            var token = await authRepo.GetTokenAsync(user);
+
+            return Ok(new { token });
         }
 
 

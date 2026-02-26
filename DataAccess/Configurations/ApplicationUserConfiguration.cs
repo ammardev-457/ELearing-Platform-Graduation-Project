@@ -8,11 +8,6 @@ namespace ELProject.DataAccess.Configurations
     {
         public void Configure(EntityTypeBuilder<ApplicationUser> builder)
         {
-            // 1. Properties
-            builder.Property(u => u.FullName)
-                .IsRequired()
-                .HasMaxLength(100);
-
             builder.Property(u => u.ProfileImage)
                 .HasMaxLength(500); // رابط الصورة قد يكون طويلاً
 
