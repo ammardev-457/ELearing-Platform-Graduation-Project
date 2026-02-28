@@ -21,78 +21,52 @@ namespace ELProject.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IConfiguration config;
         private readonly AuthRepository authRepo;
-        private readonly IFileStorageService fileStorageService;
 
         public AuthController(UserManager<ApplicationUser> _userManager, 
             IConfiguration _config,
-            AuthRepository _authRepo,
-            IFileStorageService _fileStorageService)
+            AuthRepository _authRepo)
         {
             userManager = _userManager; // To access User and Role Tables in Db
             config = _config; // To access appsettings.json
             authRepo = _authRepo; // To Access GetTokenAsync Method
-            fileStorageService = _fileStorageService;
             // To save profile image file on server (or cloud) and return its path to store in DB
         }
 
         [HttpPost("Register")] // api/Auth/Register
         public async Task<IActionResult> Register([FromForm]RegisterDto UserDto)
         {
-            if (ModelState.IsValid)
+            var result = await authRepo.RegisterAsync(UserDto);
+
+            if (result.Succeeded)
+                return Ok("Created.");
+
+            List<IdentityError> ListOfErrors = new();
+            foreach (var error in result.Errors)
             {
-                ApplicationUser user = new();
-                user.UserName = UserDto.Username;
-                user.Gender = UserDto.Gender;
+                IdentityError ie = new();
+                ie.Code = error.Code;
+                ie.Description = error.Description;
 
-                if (UserDto.ProfileImageFile != null)
-                    ///<summary>
-                    /// The Storing of ProfileImage now is completely generic.
-                    /// - Maybe today you save ProfileImage in wwwroot
-                    /// - Tomorrow in Azure Blob
-                    /// - After that in AWS S3
-                    ///</summary>
-                    user.ProfileImage = await fileStorageService.SaveFileAsync(UserDto.ProfileImageFile);
-
-                // Assign role to user
-                await userManager.AddToRoleAsync(user, UserDto.Role.ToString());
-
-                // Save in DB
-                IdentityResult result = await userManager.CreateAsync(user, UserDto.Password);
-
-                if (result.Succeeded)
-                    return Ok("Created.");
-
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError(error.Code, error.Description);
-
+                ListOfErrors.Add(ie);
             }
-            return BadRequest(ModelState);
+
+            return BadRequest(ListOfErrors);
         }
 
 
         [HttpPost("Login")] // api/Auth/Login
         public async Task<IActionResult> Login(LoginDto userFromRequest)
         {
-            if (ModelState.IsValid)
-            {
-                // Check of account is exists
-                ApplicationUser userFromDb = await userManager.FindByNameAsync(userFromRequest.Username);
-                if (userFromDb != null)
-                {
-                    // Check password
-                    bool isValid = await userManager.CheckPasswordAsync(userFromDb, userFromRequest.Password);
+            ApplicationUser user = await authRepo.LoginAsync(userFromRequest);
 
-                    if (isValid)
-                    {
-                        // Generate Token
-                        var MyToken = await authRepo.GetTokenAsync(userFromDb);
+            if (user == null)
+                return BadRequest("Username or Password Invalid.");
+            
 
-                        return Ok(new { token = MyToken });
-                    }
-                }
-                ModelState.AddModelError("Username", "Username or Password Invalid.");
-            }
-            return BadRequest(ModelState);
+            // Generate Token
+            var MyToken = await authRepo.GetTokenAsync(user);
+
+            return Ok(new { token = MyToken });
         }
 
 
