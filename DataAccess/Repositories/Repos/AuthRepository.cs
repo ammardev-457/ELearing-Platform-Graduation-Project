@@ -1,6 +1,7 @@
 ﻿using ELProject.Domain.Models;
 using ELProject.Shared;
 using ELProject.Shared.DTOs;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -59,12 +60,36 @@ namespace ELProject.DataAccess.Repositories.Repos
             return userFromDb;
         }
 
+        public async Task<ApplicationUser> ExternalLoginAsync(ExternalLoginDto model)
+        {
+            var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken);
+
+            var email = payload.Email;
+
+            var user = await userManager.FindByEmailAsync(email);
+
+            if (user == null) // If the user register for the first time
+            {
+                user = new ApplicationUser
+                {
+                    UserName = email.Substring(0, email.IndexOf('@')), // To get the first letters before '@'
+                    Email = email,
+                    EmailConfirmed = true
+                };
+
+                await userManager.CreateAsync(user);
+                await userManager.AddToRoleAsync(user, model.Role.ToString());
+            }
+
+            return user;
+        }
+
         public async Task<string> GetTokenAsync(ApplicationUser user)
         {
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.UserName!)
+                new Claim(ClaimTypes.Name, user.UserName)
             };
 
             var UserRoles = await userManager.GetRolesAsync(user);

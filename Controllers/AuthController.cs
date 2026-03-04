@@ -2,32 +2,18 @@
 using ELProject.Domain.Models;
 using ELProject.Shared;
 using ELProject.Shared.DTOs;
-using Google.Apis.Auth;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.Diagnostics.Metrics;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-
 namespace ELProject.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> userManager;
-        private readonly IConfiguration config;
         private readonly AuthRepository authRepo;
 
-        public AuthController(UserManager<ApplicationUser> _userManager, 
-            IConfiguration _config,
-            AuthRepository _authRepo)
+        public AuthController(AuthRepository _authRepo)
         {
-            userManager = _userManager; // To access User and Role Tables in Db
-            config = _config; // To access appsettings.json
             authRepo = _authRepo; // To Access GetTokenAsync Method
             // To save profile image file on server (or cloud) and return its path to store in DB
         }
@@ -73,23 +59,7 @@ namespace ELProject.Controllers
         [HttpPost("External-Login")]
         public async Task<IActionResult> ExternalLogin(ExternalLoginDto model)
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken);
-
-            var email = payload.Email;
-
-            var user = await userManager.FindByEmailAsync(email);
-
-            if (user == null)
-            {
-                user = new ApplicationUser
-                {
-                    Email = email,
-                    EmailConfirmed = true
-                };
-
-                await userManager.CreateAsync(user);
-                await userManager.AddToRoleAsync(user, model.Role.ToString());
-            }
+            var user = await authRepo.ExternalLoginAsync(model);
 
             var token = await authRepo.GetTokenAsync(user);
 
