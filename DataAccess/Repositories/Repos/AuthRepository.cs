@@ -27,7 +27,6 @@ namespace ELProject.DataAccess.Repositories.Repos
 
         public async Task<IdentityResult> RegisterAsync(RegisterDto UserDto)
         {
-
             ApplicationUser user = new();
             user.UserName = UserDto.Username;
             user.Gender = UserDto.Gender;
@@ -82,6 +81,29 @@ namespace ELProject.DataAccess.Repositories.Repos
             }
 
             return user;
+        }
+
+        public async Task<IdentityResult> ChangePasswordAsync(ClaimsPrincipal userFromClaims, ChangePasswordDto dto)
+        {
+            var user = await userManager.GetUserAsync(userFromClaims);
+
+            var result = await userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+
+            return result;
+        }
+
+        public List<IdentityError> GetIdentityErrors(IEnumerable<IdentityError> Errors)
+        {
+            List<IdentityError> ListOfErrors = new();
+            foreach (var error in Errors)
+            {
+                IdentityError ie = new();
+                ie.Code = error.Code;
+                ie.Description = error.Description;
+
+                ListOfErrors.Add(ie);
+            }
+            return ListOfErrors;
         }
 
         public async Task<string> GetTokenAsync(ApplicationUser user)
