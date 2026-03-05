@@ -2,6 +2,7 @@
 using ELProject.Domain.Models;
 using ELProject.Shared;
 using ELProject.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 namespace ELProject.Controllers
@@ -19,29 +20,20 @@ namespace ELProject.Controllers
         }
 
         [HttpPost("Register")] // api/Auth/Register
-        public async Task<IActionResult> Register([FromForm]RegisterDto UserDto)
+        public async Task<IActionResult> RegisterAsync([FromForm]RegisterDto UserDto)
         {
             var result = await authRepo.RegisterAsync(UserDto);
 
             if (result.Succeeded)
                 return Ok("Created.");
 
-            List<IdentityError> ListOfErrors = new();
-            foreach (var error in result.Errors)
-            {
-                IdentityError ie = new();
-                ie.Code = error.Code;
-                ie.Description = error.Description;
-
-                ListOfErrors.Add(ie);
-            }
-
+            var ListOfErrors = authRepo.GetIdentityErrors(result.Errors);
             return BadRequest(ListOfErrors);
         }
 
 
         [HttpPost("Login")] // api/Auth/Login
-        public async Task<IActionResult> Login(LoginDto userFromRequest)
+        public async Task<IActionResult> LoginAsync(LoginDto userFromRequest)
         {
             ApplicationUser user = await authRepo.LoginAsync(userFromRequest);
 
@@ -57,7 +49,7 @@ namespace ELProject.Controllers
 
 
         [HttpPost("External-Login")]
-        public async Task<IActionResult> ExternalLogin(ExternalLoginDto model)
+        public async Task<IActionResult> ExternalLoginAsync(ExternalLoginDto model)
         {
             var user = await authRepo.ExternalLoginAsync(model);
 
@@ -67,5 +59,17 @@ namespace ELProject.Controllers
         }
 
 
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePasswordAsync(ChangePasswordDto dto)
+        {
+            var result = await authRepo.ChangePasswordAsync(User, dto);
+
+            if (result.Succeeded)
+                return Ok("Created");
+
+            var ListOfErrors = authRepo.GetIdentityErrors(result.Errors);
+            return BadRequest(ListOfErrors);
+        }
     }
 }
