@@ -13,15 +13,13 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. إضافة الـ Controllers والـ OpenAPI
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
 
-// 2. إعداد قاعدة البيانات
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. إعداد الـ Identity
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
     options.Password.RequireDigit = true;
     options.Password.RequiredLength = 8;
@@ -32,14 +30,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-// 4. تسجيل الـ Services و الـ Repositories (DI)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<AuthRepository>(); // مهم جداً عشان الـ Login
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 builder.Services.AddHttpClient<PaymobService>();
 
-// 5. إعداد الـ Authentication (JWT & Google)
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -59,14 +55,13 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"]))
     };
+})
+.AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
 });
-// .AddGoogle(options =>
-// {
-//     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-//     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-// });
 
-// 6. إعداد الـ CORS (عشان الـ ngrok والفرونت اند)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -77,28 +72,27 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// --- إعداد الـ Pipeline (الترتيب هنا حيوي) ---
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-// تأكد إن الـ CORS قبل الـ Auth
 app.UseCors();
 
-// الترتيب الصحيح: التعرف على المستخدم أولاً ثم التحقق من صلاحياته
 app.UseAuthentication(); 
 app.UseAuthorization();
 
-// لربط الـ Routes بالـ Controllers
 app.MapControllers();
 
-// عمل الـ Seed للداتا (Roles, Admin, etc.)
 await DataSeeder.SeedDataAsync(app.Services);
 
 app.Run();

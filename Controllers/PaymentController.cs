@@ -83,7 +83,6 @@ namespace ELProject.Controllers
                     return Unauthorized();
                 }
 
-                // 3. استخراج رقم الأوردر (من الـ Payload اللي بعته لقيناه جوه order.merchant_order_id)
                 string? myOrderIdStr = null;
                 if (obj.TryGetProperty("order", out var orderNode))
                 {
@@ -96,19 +95,17 @@ namespace ELProject.Controllers
 
                 if (long.TryParse(myOrderIdStr, out long orderId))
                 {
-                    // جلب الأوردر من الداتابيز
                     var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
 
                     if (order != null && order.Status == OrderStatus.Pending.ToString())
                     {
                         if (isSuccess)
                         {
-                            // --- الخطوة أ: تحديث حالة الطلب ---
                             order.Status = OrderStatus.Paid.ToString();
                             order.UpdatedAt = DateTime.UtcNow;
                             _unitOfWork.Orders.Update(order);
 
-                            // --- الخطوة ب: إنشاء سجل العملية المالية ---
+     
                             await _unitOfWork.Transactions.AddAsync(new Transaction
                             {
                                 OrderId = order.Id,
@@ -118,8 +115,7 @@ namespace ELProject.Controllers
                                 CreatedAt = DateTime.UtcNow
                             });
 
-                            // --- الخطوة ج: إنشاء الـ Enrollment (فتح الكورس) ---
-                            // هنا بنأكد إن الطالب ملوش سجل سابق عشان الـ Unique Constraint
+              
                             var existingEnroll = await _unitOfWork.Enrollments.ExistsAsync(order.StudentId, order.CourseId);
 
                             if (existingEnroll == null)
@@ -135,13 +131,12 @@ namespace ELProject.Controllers
                                 });
                             }
 
-                            // حفظ كل التغييرات في Transaction واحدة
+                  
                             await _unitOfWork.CompleteAsync();
-                            Console.WriteLine($"✅ DONE: Order {orderId} Paid & Student Enrolled.");
+                            Console.WriteLine($"DONE: Order {orderId} Paid & Student Enrolled.");
                         }
                         else
                         {
-                            // في حالة فشل الدفع
                             order.Status = "Failed";
                             _unitOfWork.Orders.Update(order);
                             await _unitOfWork.CompleteAsync();
@@ -153,8 +148,8 @@ namespace ELProject.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error in Webhook: {ex.Message}");
-                return Ok(); // بنرجع 200 لبايموب عشان ميبعتش تاني
+                Console.WriteLine($"Error in Webhook: {ex.Message}");
+                return Ok(); 
             }
         }
 
@@ -162,7 +157,6 @@ namespace ELProject.Controllers
         [HttpGet("status")]
         public IActionResult PaymentStatus([FromQuery] string success)
         {
-            // Check if success is "true"
             if (success?.ToLower() == "true")
             {
                 return Ok(new
@@ -172,7 +166,6 @@ namespace ELProject.Controllers
                 });
             }
 
-            // If payment failed or was cancelled
             return BadRequest(new
             {
                 Status = "Failed",
@@ -184,7 +177,6 @@ namespace ELProject.Controllers
 
         private string CalculateHmac(JsonElement obj, string hmacSecret)
         {
-            // دالة مساعدة لجلب القيم وتحويل البولين (bool) لنص صغير (true/false)
             string GetVal(JsonElement element, string prop)
             {
                 if (!element.TryGetProperty(prop, out var val)) return "";
@@ -216,14 +208,13 @@ namespace ELProject.Controllers
             sb.Append(GetVal(obj, "is_standalone_payment"));
             sb.Append(GetVal(obj, "is_voided"));
 
-            // الدخول لـ Object الـ Order
+
             if (obj.TryGetProperty("order", out var order))
                 sb.Append(GetVal(order, "id")); // هذا هو order.id
 
             sb.Append(GetVal(obj, "owner"));
             sb.Append(GetVal(obj, "pending"));
 
-            // الدخول لـ Object الـ Source Data
             if (obj.TryGetProperty("source_data", out var sd))
             {
                 sb.Append(GetVal(sd, "pan"));
@@ -235,10 +226,8 @@ namespace ELProject.Controllers
 
             string concatenatedString = sb.ToString();
 
-            // طباعة السلسلة للتأكد منها في الـ Console (اختياري للـ Debugging)
             Console.WriteLine("Concatenated String for HMAC: " + concatenatedString);
 
-            // الخطوة 3: التشفير بـ SHA512
             var keyBytes = Encoding.UTF8.GetBytes(hmacSecret);
             using var hmacSha512 = new HMACSHA512(keyBytes);
             var hashBytes = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(concatenatedString));

@@ -5,8 +5,8 @@ namespace ELProject.Domain.Models
 {
     public class ApplicationUser : IdentityUser
     {
-        // Remove FullName because the IdentityUser already has a UserName property
         public string? ProfileImage { get; set; }
+        public string? Bio { get; set; }
         public Gender? Gender { get; set; }
         public DateTime JoinDate { get; set; } = DateTime.UtcNow;
         // Navigation Properties
