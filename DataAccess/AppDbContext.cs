@@ -6,12 +6,14 @@ namespace ELProject.DataAccess
 {
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
-        public DbSet<ApplicationUser> ApplicationUsersUsers { get; set; }
+        public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
-        public DbSet<Payment> Payments { get; set; }
+        // public DbSet<Payment> Payments { get; set; }
+        public DbSet<Order> Orders{get;set;}
+        public DbSet<Transaction> Transactions{get;set;}
         public DbSet<Question> Questions { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
         public DbSet<Review> Reviews { get; set; }

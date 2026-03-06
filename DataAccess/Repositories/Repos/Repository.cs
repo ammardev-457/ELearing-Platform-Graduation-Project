@@ -32,7 +32,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             
             if (filter != null)
             {
-                query.Where(filter);    
+                query = query.Where(filter);    
             }
 
             var total = await query.CountAsync();

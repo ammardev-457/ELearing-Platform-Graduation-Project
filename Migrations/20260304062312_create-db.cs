@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ELProject.Migrations
 {
     /// <inheritdoc />
-    public partial class SecondaryInitialCreate : Migration
+    public partial class createdb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -204,33 +204,30 @@ namespace ELProject.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Payments",
+                name: "Orders",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Currency = table.Column<string>(type: "nchar(3)", fixedLength: true, maxLength: 3, nullable: false),
-                    Gateway = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    GatewayCheckoutSessionId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PaymentIntentId = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    UpdateTime = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CourseId = table.Column<int>(type: "int", nullable: false)
+                    CourseId = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<long>(type: "bigint", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false, defaultValue: "EGP"),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Payments", x => x.Id);
+                    table.PrimaryKey("PK_Orders", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Payments_AspNetUsers_StudentId",
+                        name: "FK_Orders_AspNetUsers_StudentId",
                         column: x => x.StudentId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Payments_Courses_CourseId",
+                        name: "FK_Orders_Courses_CourseId",
                         column: x => x.CourseId,
                         principalTable: "Courses",
                         principalColumn: "Id",
@@ -311,22 +308,22 @@ namespace ELProject.Migrations
                 name: "Enrollments",
                 columns: table => new
                 {
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CourseId = table.Column<int>(type: "int", nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false),
                     EnrollDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    IsCompleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     Progress = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    IsCompleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PaymentId = table.Column<int>(type: "int", nullable: true)
+                    OrderId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Enrollments", x => new { x.UserId, x.CourseId });
+                    table.PrimaryKey("PK_Enrollments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Enrollments_AspNetUsers_UserId",
-                        column: x => x.UserId,
+                        name: "FK_Enrollments_AspNetUsers_StudentId",
+                        column: x => x.StudentId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -337,11 +334,36 @@ namespace ELProject.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Enrollments_Payments_PaymentId",
-                        column: x => x.PaymentId,
-                        principalTable: "Payments",
+                        name: "FK_Enrollments_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Transactions",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<long>(type: "bigint", nullable: false),
+                    TransactionId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Amount = table.Column<long>(type: "bigint", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Transactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Transactions_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -481,11 +503,16 @@ namespace ELProject.Migrations
                 column: "CourseId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Enrollments_PaymentId",
+                name: "IX_Enrollments_OrderId",
                 table: "Enrollments",
-                column: "PaymentId",
-                unique: true,
-                filter: "[PaymentId] IS NOT NULL");
+                column: "OrderId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Enrollments_StudentId_CourseId",
+                table: "Enrollments",
+                columns: new[] { "StudentId", "CourseId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Lessons_QuizId",
@@ -498,20 +525,15 @@ namespace ELProject.Migrations
                 column: "SectionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Payments_CourseId",
-                table: "Payments",
+                name: "IX_Orders_CourseId",
+                table: "Orders",
                 column: "CourseId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Payments_GatewayCheckoutSessionId",
-                table: "Payments",
-                column: "GatewayCheckoutSessionId",
+                name: "IX_Orders_StudentId_CourseId",
+                table: "Orders",
+                columns: new[] { "StudentId", "CourseId" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Payments_StudentId",
-                table: "Payments",
-                column: "StudentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Questions_QuizId",
@@ -542,6 +564,17 @@ namespace ELProject.Migrations
                 name: "IX_StudentQuizzes_QuizId",
                 table: "StudentQuizzes",
                 column: "QuizId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_OrderId",
+                table: "Transactions",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_TransactionId",
+                table: "Transactions",
+                column: "TransactionId",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -578,16 +611,19 @@ namespace ELProject.Migrations
                 name: "StudentQuizzes");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "Transactions");
 
             migrationBuilder.DropTable(
-                name: "Payments");
+                name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "Sections");
 
             migrationBuilder.DropTable(
                 name: "Quizzes");
+
+            migrationBuilder.DropTable(
+                name: "Orders");
 
             migrationBuilder.DropTable(
                 name: "Courses");

@@ -7,7 +7,7 @@ namespace ELProject.DataAccess.Repositories
     {
         Task<T?> GetByIdAsync(TKey id);
         Task<PaginationResult<T>> GetAsync(Expression<Func<T, bool>>? filter, 
-        int pageNumber, int pageSize);
+        int pageNumber = 1, int pageSize = 10);
         Task AddAsync(T entity);
         void Update(T entity);
         void Remove(T entity);

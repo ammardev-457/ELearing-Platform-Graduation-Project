@@ -8,7 +8,7 @@ namespace ELProject.DataAccess.Configurations
     {
         public void Configure(EntityTypeBuilder<Enrollment> builder)
         {
-            builder.HasKey(e => new { e.UserId, e.CourseId });
+            builder.HasKey(e => e.Id);
 
             builder.Property(e => e.EnrollDate)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -17,11 +17,18 @@ namespace ELProject.DataAccess.Configurations
                 .HasDefaultValue(false);
 
             builder.Property(e => e.Progress)
-                .HasPrecision(5, 2); // 100.00 (5)
+                .HasPrecision(5, 2); 
 
-            builder.HasOne(e => e.User)
+            builder.HasIndex(e => e.OrderId)
+                .IsUnique();
+
+            builder.HasIndex(e => new {e.StudentId, e.CourseId})
+                .IsUnique();
+            
+            
+            builder.HasOne(e => e.Student)
                 .WithMany(u => u.Enrollments)
-                .HasForeignKey(e => e.UserId)
+                .HasForeignKey(e => e.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(e => e.Course)
@@ -29,9 +36,9 @@ namespace ELProject.DataAccess.Configurations
                 .HasForeignKey(e => e.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(e => e.Payment)
+            builder.HasOne(e => e.Order)
                 .WithOne(p => p.Enrollment)
-                .HasForeignKey<Enrollment>(e => e.PaymentId)
+                .HasForeignKey<Enrollment>(e => e.OrderId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

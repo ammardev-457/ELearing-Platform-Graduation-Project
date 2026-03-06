@@ -42,6 +42,7 @@ namespace ELProject.Controllers
             {
                 ApplicationUser user = new();
                 user.UserName = UserDto.Username;
+                user.Email = UserDto.Username;
                 user.Gender = UserDto.Gender;
 
                 if (UserDto.ProfileImageFile != null)
@@ -54,13 +55,15 @@ namespace ELProject.Controllers
                     user.ProfileImage = await fileStorageService.SaveFileAsync(UserDto.ProfileImageFile);
 
                 // Assign role to user
-                await userManager.AddToRoleAsync(user, UserDto.Role.ToString());
 
                 // Save in DB
                 IdentityResult result = await userManager.CreateAsync(user, UserDto.Password);
 
                 if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, UserDto.Role.ToString());
                     return Ok("Created.");
+                }
 
                 foreach (var error in result.Errors)
                     ModelState.AddModelError(error.Code, error.Description);

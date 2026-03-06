@@ -1,0 +1,249 @@
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using ELProject.DataAccess.Repositories;
+using ELProject.Domain.Enums;
+using ELProject.Domain.Models;
+using ELProject.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ELProject.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class PaymentController : ControllerBase
+    {
+        private readonly PaymobService _paymobService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IConfiguration _configuration;
+        public PaymentController(PaymobService paymobService, IUnitOfWork unitOfWork, IConfiguration configuration, UserManager<ApplicationUser> userManager)
+        {
+            _configuration = configuration;
+            _paymobService = paymobService;
+            _unitOfWork = unitOfWork;
+            _userManager = userManager;
+        }
+
+        [HttpPost("create-intent/{courseId}")]
+        public async Task<IActionResult> InitiateOrder(int courseId)
+        {
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized(new { message = "Invalid User Identity" });
+
+
+            var student = await _userManager.FindByIdAsync(userId);
+            if (student == null) return Unauthorized("User Not Authenticated");
+
+
+            var existingEnrollment = await _unitOfWork.Enrollments.ExistsAsync(userId, courseId);
+            if (existingEnrollment != null)
+                return BadRequest("Already enrolled in this course.");
+
+            var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
+            if (course == null) return NotFound("Course not found.");
+
+            var order = new Order
+            {
+                StudentId = userId,
+                CourseId = course.Id,
+                Amount = (long)Math.Round(course.Price * 100),
+                Status = OrderStatus.Pending.ToString(),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Orders.AddAsync(order);
+            await _unitOfWork.CompleteAsync();
+
+            var clientSecret = await _paymobService.CreatePaymentIntentAsync(order, student);
+
+            return Ok(new { client_secret = clientSecret });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("callback")]
+        public async Task<IActionResult> PaymobWebhook([FromQuery] string hmac, [FromBody] JsonElement payload)
+        {
+            try
+            {
+                // 1. استخراج الـ Object الرئيسي
+                if (!payload.TryGetProperty("obj", out var obj)) return Ok();
+
+                // 2. حساب الـ HMAC (استخدم ميثود CalculateHmacSafe اللي عملناها سوا)
+                string hmacSecret = _configuration["Paymob:HmacSecret"]!;
+                string calculatedHmac = CalculateHmac(obj, hmacSecret);
+
+                if (calculatedHmac != hmac)
+                {
+                    Console.WriteLine("⚠️ HMAC Mismatch - Unauthorized Request!");
+                    return Unauthorized();
+                }
+
+                // 3. استخراج رقم الأوردر (من الـ Payload اللي بعته لقيناه جوه order.merchant_order_id)
+                string? myOrderIdStr = null;
+                if (obj.TryGetProperty("order", out var orderNode))
+                {
+                    if (orderNode.TryGetProperty("merchant_order_id", out var mId))
+                        myOrderIdStr = mId.GetString();
+                }
+
+                bool isSuccess = obj.GetProperty("success").GetBoolean();
+                long paymobTransactionId = obj.GetProperty("id").GetInt64();
+
+                if (long.TryParse(myOrderIdStr, out long orderId))
+                {
+                    // جلب الأوردر من الداتابيز
+                    var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+
+                    if (order != null && order.Status == OrderStatus.Pending.ToString())
+                    {
+                        if (isSuccess)
+                        {
+                            // --- الخطوة أ: تحديث حالة الطلب ---
+                            order.Status = OrderStatus.Paid.ToString();
+                            order.UpdatedAt = DateTime.UtcNow;
+                            _unitOfWork.Orders.Update(order);
+
+                            // --- الخطوة ب: إنشاء سجل العملية المالية ---
+                            await _unitOfWork.Transactions.AddAsync(new Transaction
+                            {
+                                OrderId = order.Id,
+                                TransactionId = paymobTransactionId.ToString(),
+                                Amount = obj.GetProperty("amount_cents").GetInt64(),
+                                Status = "Success",
+                                CreatedAt = DateTime.UtcNow
+                            });
+
+                            // --- الخطوة ج: إنشاء الـ Enrollment (فتح الكورس) ---
+                            // هنا بنأكد إن الطالب ملوش سجل سابق عشان الـ Unique Constraint
+                            var existingEnroll = await _unitOfWork.Enrollments.ExistsAsync(order.StudentId, order.CourseId);
+
+                            if (existingEnroll == null)
+                            {
+                                await _unitOfWork.Enrollments.AddAsync(new Enrollment
+                                {
+                                    StudentId = order.StudentId,
+                                    CourseId = order.CourseId,
+                                    OrderId = order.Id,
+                                    EnrollDate = DateTime.UtcNow,
+                                    Progress = 0,
+                                    IsCompleted = false
+                                });
+                            }
+
+                            // حفظ كل التغييرات في Transaction واحدة
+                            await _unitOfWork.CompleteAsync();
+                            Console.WriteLine($"✅ DONE: Order {orderId} Paid & Student Enrolled.");
+                        }
+                        else
+                        {
+                            // في حالة فشل الدفع
+                            order.Status = "Failed";
+                            _unitOfWork.Orders.Update(order);
+                            await _unitOfWork.CompleteAsync();
+                        }
+                    }
+                }
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error in Webhook: {ex.Message}");
+                return Ok(); // بنرجع 200 لبايموب عشان ميبعتش تاني
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("status")]
+        public IActionResult PaymentStatus([FromQuery] string success)
+        {
+            // Check if success is "true"
+            if (success?.ToLower() == "true")
+            {
+                return Ok(new
+                {
+                    Status = "Success",
+                    Message = "Course purchased successfully! You can start watching now."
+                });
+            }
+
+            // If payment failed or was cancelled
+            return BadRequest(new
+            {
+                Status = "Failed",
+                Message = "Payment failed. Please try again or contact support."
+            });
+        }
+
+
+
+        private string CalculateHmac(JsonElement obj, string hmacSecret)
+        {
+            // دالة مساعدة لجلب القيم وتحويل البولين (bool) لنص صغير (true/false)
+            string GetVal(JsonElement element, string prop)
+            {
+                if (!element.TryGetProperty(prop, out var val)) return "";
+
+                return val.ValueKind switch
+                {
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.String => val.GetString() ?? "",
+                    JsonValueKind.Number => val.ToString(),
+                    _ => ""
+                };
+            }
+
+            // الخطوة 1 و 2: التجميع حسب القائمة الـ 21 بالترتيب الأبجدي
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append(GetVal(obj, "amount_cents"));
+            sb.Append(GetVal(obj, "created_at"));
+            sb.Append(GetVal(obj, "currency"));
+            sb.Append(GetVal(obj, "error_occured"));
+            sb.Append(GetVal(obj, "has_parent_transaction"));
+            sb.Append(GetVal(obj, "id")); // هذا هو obj.id في الـ POST
+            sb.Append(GetVal(obj, "integration_id"));
+            sb.Append(GetVal(obj, "is_3d_secure"));
+            sb.Append(GetVal(obj, "is_auth"));
+            sb.Append(GetVal(obj, "is_capture"));
+            sb.Append(GetVal(obj, "is_refunded"));
+            sb.Append(GetVal(obj, "is_standalone_payment"));
+            sb.Append(GetVal(obj, "is_voided"));
+
+            // الدخول لـ Object الـ Order
+            if (obj.TryGetProperty("order", out var order))
+                sb.Append(GetVal(order, "id")); // هذا هو order.id
+
+            sb.Append(GetVal(obj, "owner"));
+            sb.Append(GetVal(obj, "pending"));
+
+            // الدخول لـ Object الـ Source Data
+            if (obj.TryGetProperty("source_data", out var sd))
+            {
+                sb.Append(GetVal(sd, "pan"));
+                sb.Append(GetVal(sd, "sub_type"));
+                sb.Append(GetVal(sd, "type"));
+            }
+
+            sb.Append(GetVal(obj, "success"));
+
+            string concatenatedString = sb.ToString();
+
+            // طباعة السلسلة للتأكد منها في الـ Console (اختياري للـ Debugging)
+            Console.WriteLine("Concatenated String for HMAC: " + concatenatedString);
+
+            // الخطوة 3: التشفير بـ SHA512
+            var keyBytes = Encoding.UTF8.GetBytes(hmacSecret);
+            using var hmacSha512 = new HMACSHA512(keyBytes);
+            var hashBytes = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(concatenatedString));
+
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+        }
+    }
+}

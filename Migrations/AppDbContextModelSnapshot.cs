@@ -163,51 +163,6 @@ namespace ELProject.Migrations
                     b.ToTable("Courses");
                 });
 
-            modelBuilder.Entity("ELProject.Domain.Models.Enrollment", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("CourseId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("EnrollDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsCompleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int?>("PaymentId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Progress")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.HasKey("UserId", "CourseId");
-
-                    b.HasIndex("CourseId");
-
-                    b.HasIndex("PaymentId")
-                        .IsUnique()
-                        .HasFilter("[PaymentId] IS NOT NULL");
-
-                    b.ToTable("Enrollments");
-                });
-
             modelBuilder.Entity("ELProject.Domain.Models.Lesson", b =>
                 {
                     b.Property<int>("Id")
@@ -265,44 +220,29 @@ namespace ELProject.Migrations
                     b.ToTable("Lessons");
                 });
 
-            modelBuilder.Entity("ELProject.Domain.Models.Payment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("bigint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<long>("Amount")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nchar(3)")
-                        .IsFixedLength();
-
-                    b.Property<string>("Gateway")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("GatewayCheckoutSessionId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("PaymentIntentId")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)")
+                        .HasDefaultValue("EGP");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -313,21 +253,17 @@ namespace ELProject.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("UpdateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
 
-                    b.HasIndex("GatewayCheckoutSessionId")
+                    b.HasIndex("StudentId", "CourseId")
                         .IsUnique();
 
-                    b.HasIndex("StudentId");
-
-                    b.ToTable("Payments");
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Question", b =>
@@ -343,7 +279,7 @@ namespace ELProject.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("Options")
+                    b.PrimitiveCollection<string>("Options")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -476,6 +412,99 @@ namespace ELProject.Migrations
                     b.HasIndex("QuizId");
 
                     b.ToTable("StudentQuizzes");
+                });
+
+            modelBuilder.Entity("ELProject.Domain.Models.Transaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("TransactionId")
+                        .IsUnique();
+
+                    b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("Enrollment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EnrollDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Progress")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId", "CourseId")
+                        .IsUnique();
+
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -630,32 +659,6 @@ namespace ELProject.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ELProject.Domain.Models.Enrollment", b =>
-                {
-                    b.HasOne("ELProject.Domain.Models.Course", "Course")
-                        .WithMany("Enrollments")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ELProject.Domain.Models.Payment", "Payment")
-                        .WithOne("Enrollment")
-                        .HasForeignKey("ELProject.Domain.Models.Enrollment", "PaymentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "User")
-                        .WithMany("Enrollments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("ELProject.Domain.Models.Lesson", b =>
                 {
                     b.HasOne("ELProject.Domain.Models.Quiz", "Quiz")
@@ -674,16 +677,16 @@ namespace ELProject.Migrations
                     b.Navigation("Section");
                 });
 
-            modelBuilder.Entity("ELProject.Domain.Models.Payment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
                 {
                     b.HasOne("ELProject.Domain.Models.Course", "Course")
-                        .WithMany("Payments")
+                        .WithMany("Orders")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ELProject.Domain.Models.ApplicationUser", "Student")
-                        .WithMany("Payments")
+                        .WithMany()
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -764,6 +767,44 @@ namespace ELProject.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ELProject.Domain.Models.Transaction", b =>
+                {
+                    b.HasOne("ELProject.Domain.Models.Order", "Order")
+                        .WithMany("Transactions")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Enrollment", b =>
+                {
+                    b.HasOne("ELProject.Domain.Models.Course", "Course")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ELProject.Domain.Models.Order", "Order")
+                        .WithOne("Enrollment")
+                        .HasForeignKey("Enrollment", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ELProject.Domain.Models.ApplicationUser", "Student")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -821,8 +862,6 @@ namespace ELProject.Migrations
 
                     b.Navigation("Enrollments");
 
-                    b.Navigation("Payments");
-
                     b.Navigation("Reviews");
 
                     b.Navigation("StudentQuizzes");
@@ -837,7 +876,7 @@ namespace ELProject.Migrations
                 {
                     b.Navigation("Enrollments");
 
-                    b.Navigation("Payments");
+                    b.Navigation("Orders");
 
                     b.Navigation("Quizzes");
 
@@ -846,9 +885,12 @@ namespace ELProject.Migrations
                     b.Navigation("Sections");
                 });
 
-            modelBuilder.Entity("ELProject.Domain.Models.Payment", b =>
+            modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
                 {
-                    b.Navigation("Enrollment");
+                    b.Navigation("Enrollment")
+                        .IsRequired();
+
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>

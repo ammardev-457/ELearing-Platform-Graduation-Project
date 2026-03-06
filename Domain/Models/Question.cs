@@ -8,7 +8,7 @@ namespace ELProject.Domain.Models
 
         public string QuestionType { get; set; } = null!;
 
-        public string Options { get; set; } = null!; // How choose answer??
+        public List<string> Options { get; set; } = null!; // How choose answer??
 
         public string CorrectAnswer { get; set; } = null!;
 
