@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using ELProject.Domain.Models;
 
-namespace ELProject.Services
+namespace ELProject.ExternalServices
 {
     public class PaymobService
     {
@@ -27,19 +27,19 @@ namespace ELProject.Services
                 special_reference = order.Id.ToString(),
                 billing_data = new
                 {
-                    first_name = student.UserName?.Split(' ')[0] ?? "Student",
+                    first_name = student.UserName?? "Student",
                     last_name = "User",
                     email = (string.IsNullOrEmpty(student.Email) || !student.Email.Contains("@"))
-                        ? "customer@example.com"
+                        ? "dumyemail@example.com"
                         : student.Email,
                     phone_number = student.PhoneNumber ?? "+201010101010",
                     apartment = "NA",
                     floor = "NA",
                     street = "NA",
                     building = "NA",
-                    city = "Cairo",
-                    country = "Egypt",
-                    state = "Cairo"
+                    city = "NA",
+                    country = "NA",
+                    state = "NA"
                 }
             };
 
@@ -59,6 +59,8 @@ namespace ELProject.Services
             }
 
             using var doc = JsonDocument.Parse(responseString);
+            // set order.paymob_order.id
+            order.PaymobOrderId = doc.RootElement.GetProperty("intention_order_id").GetInt64(); 
             return doc.RootElement.GetProperty("client_secret").GetString() ?? string.Empty;
         }
     }

@@ -1,35 +1,55 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ELProject.Domain.Models;
+using ELProject.Domain.Enums;  
 
 public class OrderConfiguration : IEntityTypeConfiguration<Order>
 {
     public void Configure(EntityTypeBuilder<Order> builder)
     {
+        // Primary Key
         builder.HasKey(o => o.Id);
 
-        builder.HasIndex(o => new {o.StudentId, o.CourseId}).IsUnique();
+        builder.HasIndex(o => new { o.StudentId, o.CourseId })
+               .IsUnique();
 
-        builder.Property(o => o.Status)
-            .HasMaxLength(20)
-            .IsRequired();
+        builder.HasIndex(o => o.PaymobOrderId)
+               .IsUnique(false); 
+
+        // Properties
+        builder.Property(o => o.Amount)
+               .IsRequired();
 
         builder.Property(o => o.Currency)
-            .HasMaxLength(5)
-            .HasDefaultValue("EGP");
+               .HasMaxLength(3)          
+               .HasDefaultValue("EGP")
+               .IsRequired();
 
-        builder.Property(o => o.Amount)
-            .IsRequired();
+        builder.Property(o => o.Status)
+               .HasMaxLength(50)         
+               .HasDefaultValue(OrderStatus.Pending)  
+               .IsRequired();
 
-        builder.HasOne(o => o.Student) 
-            .WithMany()
-            .HasForeignKey(o => o.StudentId)
-            .OnDelete(DeleteBehavior.Restrict); 
+        builder.Property(o => o.PaymobOrderId)   
+               .IsRequired(false);               
+
+        builder.Property(o => o.CreatedAt)
+               .HasDefaultValueSql("GETUTCDATE()")  
+               .IsRequired();
+
+        builder.Property(o => o.UpdatedAt)
+               .IsRequired(false);  
+
+        // Relationships
+        builder.HasOne(o => o.Student)
+               .WithMany() 
+               .HasForeignKey(o => o.StudentId)
+               .OnDelete(DeleteBehavior.Restrict);  
 
         builder.HasOne(o => o.Course)
-           .WithMany(c => c.Orders) // لو كلاس الكورس فيه Orders اكتب: .WithMany(c => c.Orders)
-           .HasForeignKey(o => o.CourseId) // بنقوله استخدم ده تحديداً
-           .IsRequired()
-           .OnDelete(DeleteBehavior.Restrict);
+               .WithMany(c => c.Orders)  
+               .HasForeignKey(o => o.CourseId)
+               .IsRequired()
+               .OnDelete(DeleteBehavior.Restrict);  
     }
 }

@@ -10,11 +10,11 @@ namespace ELProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CourseController : ControllerBase
+    public class CoursesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
 
-        public CourseController(IUnitOfWork unitOfWork)
+        public CoursesController(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
         }

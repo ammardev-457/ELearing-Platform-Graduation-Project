@@ -3,7 +3,7 @@ using ELProject.DataAccess.Repositories;
 using ELProject.DataAccess.Repositories.Repos;
 using ELProject.DataAccess.Seed;
 using ELProject.Domain.Models;
-using ELProject.Services;
+using ELProject.ExternalServices;
 using ELProject.Shared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;

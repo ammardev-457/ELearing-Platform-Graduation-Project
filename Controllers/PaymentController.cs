@@ -5,7 +5,7 @@ using System.Text.Json;
 using ELProject.DataAccess.Repositories;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
-using ELProject.Services;
+using ELProject.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,22 +15,15 @@ namespace ELProject.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class PaymentController : ControllerBase
+    public class PaymentController(PaymobService paymobService, IUnitOfWork unitOfWork, IConfiguration configuration, UserManager<ApplicationUser> userManager) : ControllerBase
     {
-        private readonly PaymobService _paymobService;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IConfiguration _configuration;
-        public PaymentController(PaymobService paymobService, IUnitOfWork unitOfWork, IConfiguration configuration, UserManager<ApplicationUser> userManager)
-        {
-            _configuration = configuration;
-            _paymobService = paymobService;
-            _unitOfWork = unitOfWork;
-            _userManager = userManager;
-        }
+        private readonly PaymobService _paymobService = paymobService;
+        private readonly UserManager<ApplicationUser> _userManager = userManager;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        private readonly IConfiguration _configuration = configuration;
 
         [HttpPost("create-intent/{courseId}")]
-        public async Task<IActionResult> InitiateOrder(int courseId)
+        public async Task<IActionResult> CreatePaymentIntetion(int courseId)
         {
             string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized(new { message = "Invalid User Identity" });
@@ -61,19 +54,19 @@ namespace ELProject.Controllers
 
             var clientSecret = await _paymobService.CreatePaymentIntentAsync(order, student);
 
+
+
             return Ok(new { client_secret = clientSecret });
         }
 
         [AllowAnonymous]
         [HttpPost("callback")]
-        public async Task<IActionResult> PaymobWebhook([FromQuery] string hmac, [FromBody] JsonElement payload)
+        public async Task<IActionResult> HandleWebhook([FromQuery] string hmac, [FromBody] JsonElement payload)
         {
             try
             {
-                // 1. استخراج الـ Object الرئيسي
                 if (!payload.TryGetProperty("obj", out var obj)) return Ok();
 
-                // 2. حساب الـ HMAC (استخدم ميثود CalculateHmacSafe اللي عملناها سوا)
                 string hmacSecret = _configuration["Paymob:HmacSecret"]!;
                 string calculatedHmac = CalculateHmac(obj, hmacSecret);
 
@@ -101,7 +94,7 @@ namespace ELProject.Controllers
                     {
                         if (isSuccess)
                         {
-                            order.Status = OrderStatus.Paid.ToString();
+                            order.Status = OrderStatus.Success.ToString();
                             order.UpdatedAt = DateTime.UtcNow;
                             _unitOfWork.Orders.Update(order);
 

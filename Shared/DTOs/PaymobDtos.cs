@@ -1,13 +1,12 @@
 namespace ELProject.Domain.DTOs
 {
-    // --- 1. Request DTOs (لإرسال الطلب لـ Paymob) ---
     public class PaymobIntentRequest
     {
-        public long Amount { get; set; } // بالقرش
+        public long Amount { get; set; } 
         public string Currency { get; set; } = "EGP";
-        public List<int> Payment_methods { get; set; } = new List<int>();
+        public List<int> Payment_methods { get; set; } = [];
         public BillingData Billing_data { get; set; } = new BillingData();
-        public string Special_reference { get; set; } = string.Empty; // ده هنحط فيه Order.Id بتاعنا
+        public string Special_reference { get; set; } = string.Empty; 
     }
 
     public class BillingData

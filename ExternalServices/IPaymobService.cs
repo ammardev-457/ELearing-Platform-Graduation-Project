@@ -1,7 +1,7 @@
 using ELProject.Domain.DTOs;
 using ELProject.Domain.Models;
 
-namespace ELProject.Services
+namespace ELProject.ExternalServices
 {
     public interface IPaymobGatewayService
     {
