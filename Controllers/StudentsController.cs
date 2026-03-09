@@ -1,4 +1,5 @@
 
+using System.Reflection.Metadata.Ecma335;
 using ELProject.DataAccess.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,13 @@ namespace ELProject.Controllers
             return profile == null? 
                 NotFound(new { message = $"No profile found for Student ID: {studentId}" }) : 
                 Ok(profile);
+        }
+
+        [HttpGet("{studentId}/Dashboard")]
+        public async Task<IActionResult> GetDashboard(string studentId)
+        {
+            var dashboard =  // function
+            return 
         }
     }
 }

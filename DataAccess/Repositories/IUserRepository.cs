@@ -6,6 +6,6 @@ namespace ELProject.DataAccess.Repositories
     public interface IUserRepository : IRepository<ApplicationUser, string>
     {
         Task<StudentProfileDto?> GetStudentProfileAsync(string studentId); 
-
+        Task<StudentDashboardDto?> GetStudentDashboardAsync(string studentId);
     }
 }

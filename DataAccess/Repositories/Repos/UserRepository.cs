@@ -12,6 +12,33 @@ namespace ELProject.DataAccess.Repositories.Repos
             _context = context;
         }
 
+        public async Task<StudentDashboardDto?> GetStudentDashboardAsync(string studentId)
+        {
+            
+            var enrollments = await _context.Enrollments
+                .AsNoTracking()
+                .Where(e => e.StudentId == studentId)
+                .Select(e => new StudentDashboardCourse
+                {
+                    CourseName = e.Course.Title,
+                    PictureUrl = null,
+                    InstructorName = e.Course.User.UserName?? "UnKnow",
+                    Progress = (int)e.Progress
+                })
+                .ToListAsync();
+            
+            var dashboard = new StudentDashboardDto
+            {
+                EnrollmentCourses = enrollments.Count,
+                Completed = enrollments.Count(e => e.Progress == 100),
+                InProgressCount = enrollments.Count(e => e.Progress > 0 && e.Progress < 100),
+                LearningHours = 0,
+                Courses = enrollments
+            };
+
+            return dashboard;
+        }
+
         public async Task<StudentProfileDto?> GetStudentProfileAsync(string studentId)
         {
             var userProfile = await _context.ApplicationUsers
