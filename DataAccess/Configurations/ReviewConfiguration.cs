@@ -15,8 +15,6 @@ namespace ELProject.DataAccess.Configurations
 
             builder.Property(r => r.Rating)
                 .IsRequired();
-            // يمكن إضافة Check Constraint هنا يدوياً في SQL
-            // .HasCheckConstraint("CK_Review_Rating", "[Rating] >= 1 AND [Rating] <= 5");
 
             builder.Property(r => r.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
@@ -25,7 +23,7 @@ namespace ELProject.DataAccess.Configurations
             builder.HasOne(r => r.User)
                 .WithMany(u => u.Reviews)
                 .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.NoAction); // تجنب الدورات (Cycles)
+                .OnDelete(DeleteBehavior.Restrict); 
 
             builder.HasOne(r => r.Course)
                 .WithMany(c => c.Reviews)

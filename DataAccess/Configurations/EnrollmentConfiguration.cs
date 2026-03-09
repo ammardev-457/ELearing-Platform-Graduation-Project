@@ -16,8 +16,7 @@ namespace ELProject.DataAccess.Configurations
             builder.Property(e => e.IsCompleted)
                 .HasDefaultValue(false);
 
-            builder.Property(e => e.Progress)
-                .HasPrecision(5, 2); 
+            builder.Property(e => e.Progress); 
 
             builder.HasIndex(e => e.OrderId)
                 .IsUnique();
