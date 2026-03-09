@@ -1,6 +1,7 @@
-﻿using ELProject.Domain.Models;
+﻿using ELProject.DataAccess.Results;
+using ELProject.Domain.Models;
 using ELProject.Shared;
-using ELProject.Shared.DTOs;
+using ELProject.Shared.DTOs.Auth;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -25,7 +26,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             fileStorageService = _fileStorageService;
         }
 
-        public async Task<IdentityResult> RegisterAsync(RegisterDto UserDto)
+        public async Task<AuthResult> RegisterAsync(RegisterDto UserDto)
         {
             ApplicationUser user = new();
             user.UserName = UserDto.Username;
@@ -40,12 +41,30 @@ namespace ELProject.DataAccess.Repositories.Repos
                 ///</summary>
                 user.ProfileImage = await fileStorageService.SaveFileAsync(UserDto.ProfileImageFile);
 
-            // Assign role to user
-            await userManager.AddToRoleAsync(user, UserDto.Role.ToString());
-
             // Save in DB
-            IdentityResult result = await userManager.CreateAsync(user, UserDto.Password);
-            return result;
+            var result = await userManager.CreateAsync(user, UserDto.Password);
+
+            if (!result.Succeeded)
+            {
+                return new AuthResult
+                {
+                    Succeeded = false,
+                    Errors = result.Errors.Select(e => e.Description)
+                };
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, UserDto.Role.ToString());
+
+            if (!roleResult.Succeeded)
+            {
+                return new AuthResult
+                {
+                    Succeeded = false,
+                    Errors = roleResult.Errors.Select(e => e.Description)
+                };
+            }
+
+            return new AuthResult { Succeeded = true };
         }
 
         public async Task<ApplicationUser> LoginAsync(LoginDto dto)
@@ -83,27 +102,22 @@ namespace ELProject.DataAccess.Repositories.Repos
             return user;
         }
 
-        public async Task<IdentityResult> ChangePasswordAsync(ClaimsPrincipal userFromClaims, ChangePasswordDto dto)
+        public async Task<AuthResult> ChangePasswordAsync(ClaimsPrincipal userFromClaims, ChangePasswordDto dto)
         {
             var user = await userManager.GetUserAsync(userFromClaims);
 
             var result = await userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
 
-            return result;
-        }
-
-        public List<IdentityError> GetIdentityErrors(IEnumerable<IdentityError> Errors)
-        {
-            List<IdentityError> ListOfErrors = new();
-            foreach (var error in Errors)
+            if (!result.Succeeded)
             {
-                IdentityError ie = new();
-                ie.Code = error.Code;
-                ie.Description = error.Description;
-
-                ListOfErrors.Add(ie);
+                return new AuthResult
+                {
+                    Succeeded = false,
+                    Errors = result.Errors.Select(e => e.Description)
+                };
             }
-            return ListOfErrors;
+
+            return new AuthResult { Succeeded = true };
         }
 
         public async Task<string> GetTokenAsync(ApplicationUser user)

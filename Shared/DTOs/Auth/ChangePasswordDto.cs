@@ -1,4 +1,4 @@
-﻿namespace ELProject.Shared.DTOs
+﻿namespace ELProject.Shared.DTOs.Auth
 {
     public class ChangePasswordDto
     {

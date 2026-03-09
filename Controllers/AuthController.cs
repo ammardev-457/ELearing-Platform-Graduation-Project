@@ -1,7 +1,7 @@
 ﻿using ELProject.DataAccess.Repositories.Repos;
 using ELProject.Domain.Models;
 using ELProject.Shared;
-using ELProject.Shared.DTOs;
+using ELProject.Shared.DTOs.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -25,10 +25,9 @@ namespace ELProject.Controllers
             var result = await authRepo.RegisterAsync(UserDto);
 
             if (result.Succeeded)
-                return Ok("Created.");
+                return Ok(new { message = "User created successfully" });
 
-            var ListOfErrors = authRepo.GetIdentityErrors(result.Errors);
-            return BadRequest(ListOfErrors);
+            return BadRequest(new { errors = result.Errors });
         }
 
 
@@ -66,10 +65,9 @@ namespace ELProject.Controllers
             var result = await authRepo.ChangePasswordAsync(User, dto);
 
             if (result.Succeeded)
-                return Ok("Created");
+                return Ok(new { message = "User created successfully" });
 
-            var ListOfErrors = authRepo.GetIdentityErrors(result.Errors);
-            return BadRequest(ListOfErrors);
+            return BadRequest(new { errors = result.Errors });
         }
     }
 }
