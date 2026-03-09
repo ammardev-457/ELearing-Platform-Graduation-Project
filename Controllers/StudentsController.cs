@@ -25,8 +25,8 @@ namespace ELProject.Controllers
         [HttpGet("{studentId}/Dashboard")]
         public async Task<IActionResult> GetDashboard(string studentId)
         {
-            var dashboard =  // function
-            return 
+            var dashboard =  await _unitOfWork.Users.GetStudentDashboardAsync(studentId);
+            return dashboard == null? NotFound(new {message = $"No profile found for Student ID: {studentId}"}) : Ok(dashboard);
         }
     }
 }
