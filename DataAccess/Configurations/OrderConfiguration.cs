@@ -38,7 +38,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
                .IsRequired();
 
         builder.Property(o => o.UpdatedAt)
-               .IsRequired(false);  
+               .HasDefaultValueSql("GETUTCDATE()")  
+               .IsRequired(); 
 
         // Relationships
         builder.HasOne(o => o.Student)
