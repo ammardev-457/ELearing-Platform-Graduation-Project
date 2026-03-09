@@ -12,9 +12,35 @@ namespace ELProject.DataAccess.Repositories.Repos
             _context = context;
         }
 
+        public async Task<IReadOnlyList<StudentCoursesDto>> GetMyCoursesAsync(string studentId)
+        {
+            var myCourses = await _context.Enrollments
+                .Where(e => e.StudentId == studentId)
+                .Select(e => new StudentCoursesDto
+                {
+                    Title = e.Course.Title,
+                    Thumbnail = string.Empty,
+                    Category = e.Course.Category.Name,
+
+                    Rate = e.Course.Reviews.Any()
+                        ? e.Course.Reviews.Average(r => r.Rating)
+                        : 0,
+
+                    LessonsCount = e.Course.Sections
+                        .SelectMany(s => s.Lessons)
+                        .Count(),
+
+                    Hours = 0,
+                    Progress = e.Progress
+                })
+                .ToListAsync();
+
+            return myCourses;
+        }
+
         public async Task<StudentDashboardDto?> GetStudentDashboardAsync(string studentId)
         {
-            
+
             var enrollments = await _context.Enrollments
                 .AsNoTracking()
                 .Where(e => e.StudentId == studentId)
@@ -22,11 +48,11 @@ namespace ELProject.DataAccess.Repositories.Repos
                 {
                     CourseName = e.Course.Title,
                     PictureUrl = null,
-                    InstructorName = e.Course.User.UserName?? "UnKnow",
+                    InstructorName = e.Course.User.UserName ?? "UnKnow",
                     Progress = (int)e.Progress
                 })
                 .ToListAsync();
-            
+
             var dashboard = new StudentDashboardDto
             {
                 EnrollmentCourses = enrollments.Count,

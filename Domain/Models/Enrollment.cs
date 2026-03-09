@@ -6,7 +6,7 @@ public class Enrollment
     public string StudentId { get; set; } = null!;
     public int CourseId { get; set; }
     public DateTime EnrollDate { get; set; } = DateTime.UtcNow;
-    public decimal Progress { get; set; } = 0;
+    public int Progress { get; set; } = 0;
     public bool IsCompleted { get; set; } = false;
     public DateTime? CompletedAt { get; set; }
     public long OrderId { get; set; } 

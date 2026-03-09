@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using ELProject.Domain.Enums;
 
 namespace ELProject.Domain.Models
@@ -18,6 +19,8 @@ namespace ELProject.Domain.Models
 
         public decimal Price { get; set; }
 
+        [NotMapped]
+        public double Rate => Reviews.Count != 0 ? Reviews.Average(r => r.Rating) : 0;
         // Foreign Keys
         public string UserId { get; set; } = null!;
         public ApplicationUser User { get; set; } = null!;

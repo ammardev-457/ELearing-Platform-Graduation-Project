@@ -7,5 +7,6 @@ namespace ELProject.DataAccess.Repositories
     {
         Task<StudentProfileDto?> GetStudentProfileAsync(string studentId); 
         Task<StudentDashboardDto?> GetStudentDashboardAsync(string studentId);
+        Task<IReadOnlyList<StudentCoursesDto>> GetMyCoursesAsync(string studentId);
     }
 }
