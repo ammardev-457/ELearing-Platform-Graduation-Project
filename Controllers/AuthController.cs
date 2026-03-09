@@ -15,8 +15,7 @@ namespace ELProject.Controllers
 
         public AuthController(AuthRepository _authRepo)
         {
-            authRepo = _authRepo; // To Access GetTokenAsync Method
-            // To save profile image file on server (or cloud) and return its path to store in DB
+            authRepo = _authRepo;
         }
 
         [HttpPost("Register")] // api/Auth/Register

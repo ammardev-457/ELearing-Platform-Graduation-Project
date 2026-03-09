@@ -1,6 +1,6 @@
 ﻿using ELProject.DataAccess.Results;
 using ELProject.Domain.Models;
-using ELProject.Shared;
+using ELProject.ExternalServices;
 using ELProject.Shared.DTOs.Auth;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;

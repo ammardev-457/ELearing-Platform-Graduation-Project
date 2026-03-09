@@ -1,4 +1,4 @@
-﻿namespace ELProject.Shared
+﻿namespace ELProject.ExternalServices
 {
     public interface IFileStorageService
     {

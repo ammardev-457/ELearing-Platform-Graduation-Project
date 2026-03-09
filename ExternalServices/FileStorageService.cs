@@ -1,4 +1,4 @@
-﻿using ELProject.Shared;
+﻿using ELProject.ExternalServices;
 using Microsoft.AspNetCore.Hosting;
 
 /// <summary>
