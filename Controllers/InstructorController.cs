@@ -10,7 +10,7 @@ namespace ELProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Instructor")] // اختياري: لو بتستخدم Roles
+    [Authorize(Roles = "Instructor")] // Roles اختياري: لو بتستخدم
     public class InstructorController : ControllerBase
     {
         private readonly IInstructorRepository _repo;
