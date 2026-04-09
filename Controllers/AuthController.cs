@@ -19,7 +19,7 @@ namespace ELProject.Controllers
             authRepo = _authRepo;
         }
 
-        [HttpPost("Register")] // api/Auth/Register
+        [HttpPost("register")] // api/Auth/register
         public async Task<IActionResult> RegisterAsync([FromForm]RegisterDto UserDto)
         {
             var result = await authRepo.RegisterAsync(UserDto);
@@ -33,7 +33,7 @@ namespace ELProject.Controllers
         }
 
 
-        [HttpPost("Login")] // api/Auth/Login
+        [HttpPost("login")] // api/Auth/login
         public async Task<IActionResult> LoginAsync(LoginDto userFromRequest)
         {
             var authResult = await authRepo.LoginAsync(userFromRequest);
@@ -48,7 +48,7 @@ namespace ELProject.Controllers
         }
 
 
-        [HttpGet("refreshToken")]
+        [HttpGet("refresh-token")]
         public async Task<IActionResult> RefreshToken()
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -63,7 +63,7 @@ namespace ELProject.Controllers
             return Ok(result);
         }
 
-        [HttpPost("revokeToken")]
+        [HttpPost("revoke-token")]
         public async Task<IActionResult> RevokeToken([FromBody] RevokeToken model)
         {
             var token = model.Token ?? Request.Cookies["refreshToken"];
@@ -80,7 +80,7 @@ namespace ELProject.Controllers
         }
 
 
-        [HttpPost("External-Login")]
+        [HttpPost("external-login")]
         public async Task<IActionResult> ExternalLoginAsync(ExternalLoginDto model)
         {
             var user = await authRepo.ExternalLoginAsync(model);
@@ -97,10 +97,10 @@ namespace ELProject.Controllers
         {
             var result = await authRepo.ChangePasswordAsync(User, dto);
 
-            if (result.Succeeded)
-                return Ok(new { message = "User created successfully" });
+            if (result.Message is not null)
+                return BadRequest(result);
 
-            return BadRequest(new { errors = result.Errors });
+            return Ok("Password changed successfully");
         }
 
 
