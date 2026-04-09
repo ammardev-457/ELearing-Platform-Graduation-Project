@@ -5,6 +5,7 @@ using ELProject.Shared.DTOs.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+
 namespace ELProject.Controllers
 {
     [Route("api/[controller]")]
@@ -23,26 +24,59 @@ namespace ELProject.Controllers
         {
             var result = await authRepo.RegisterAsync(UserDto);
 
-            if (result.Succeeded)
-                return Ok(new { message = "User created successfully" });
+            if (!result.IsAuthenticated)
+                return BadRequest(result.Message);
 
-            return BadRequest(new { errors = result.Errors });
+            SetRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiration);
+
+            return Ok(result);
         }
 
 
         [HttpPost("Login")] // api/Auth/Login
         public async Task<IActionResult> LoginAsync(LoginDto userFromRequest)
         {
-            ApplicationUser user = await authRepo.LoginAsync(userFromRequest);
+            var authResult = await authRepo.LoginAsync(userFromRequest);
 
-            if (user == null)
-                return BadRequest("Username or Password Invalid.");
-            
+            if (!authResult.IsAuthenticated)
+                return BadRequest(authResult.Message);
 
-            // Generate Token
-            var MyToken = await authRepo.GetTokenAsync(user);
+            if (!string.IsNullOrEmpty(authResult.RefreshToken))
+                SetRefreshTokenInCookie(authResult.RefreshToken, authResult.RefreshTokenExpiration);
 
-            return Ok(new { token = MyToken });
+            return Ok(authResult);
+        }
+
+
+        [HttpGet("refreshToken")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            var result = await authRepo.RefreshTokenAsync(refreshToken);
+
+            if (!result.IsAuthenticated)
+                return BadRequest(result);
+
+            SetRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiration);
+
+            return Ok(result);
+        }
+
+        [HttpPost("revokeToken")]
+        public async Task<IActionResult> RevokeToken([FromBody] RevokeToken model)
+        {
+            var token = model.Token ?? Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Token is required!");
+
+            var result = await authRepo.RevokeTokenAsync(token);
+
+            if (!result)
+                return BadRequest("Token is invalid!");
+
+            return Ok();
         }
 
 
@@ -67,6 +101,18 @@ namespace ELProject.Controllers
                 return Ok(new { message = "User created successfully" });
 
             return BadRequest(new { errors = result.Errors });
+        }
+
+
+        private void SetRefreshTokenInCookie(string refreshToken, DateTime refreshTokenExpiration)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = refreshTokenExpiration
+            };
+
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
     }
 }
