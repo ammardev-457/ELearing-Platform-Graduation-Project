@@ -15,5 +15,6 @@ namespace ELProject.Domain.Models
         public ICollection<Review> Reviews { get; set; } = [];
         // public ICollection<Payment> Payments { get; set; } = [];
         public ICollection<StudentQuiz> StudentQuizzes { get; set; } = [];
+        public List<RefreshToken>? RefreshTokens { get; set; } = [];
     }
 }

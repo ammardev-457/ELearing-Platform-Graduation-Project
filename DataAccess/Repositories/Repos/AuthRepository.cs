@@ -4,9 +4,11 @@ using ELProject.ExternalServices;
 using ELProject.Shared.DTOs.Auth;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ELProject.DataAccess.Repositories.Repos
@@ -28,9 +30,14 @@ namespace ELProject.DataAccess.Repositories.Repos
 
         public async Task<AuthResult> RegisterAsync(RegisterDto UserDto)
         {
+            if (await userManager.FindByNameAsync(UserDto.Username) is not null)
+                return new AuthResult { Message = "Username is already registered!" };
+
             ApplicationUser user = new();
             user.UserName = UserDto.Username;
+            user.Email = UserDto.Email;
             user.Gender = UserDto.Gender;
+            user.Bio = UserDto.Bio;
 
             if (UserDto.ProfileImageFile != null)
                 ///<summary>
@@ -46,36 +53,142 @@ namespace ELProject.DataAccess.Repositories.Repos
 
             if (!result.Succeeded)
             {
-                return new AuthResult
-                {
-                    Succeeded = false,
-                    Errors = result.Errors.Select(e => e.Description)
-                };
+                var errors = string.Empty;
+
+                foreach (var error in result.Errors)
+                    errors += $"{error.Description},";
+
+                return new AuthResult { Message = errors };
             }
 
             var roleResult = await userManager.AddToRoleAsync(user, UserDto.Role.ToString());
 
             if (!roleResult.Succeeded)
             {
-                return new AuthResult
-                {
-                    Succeeded = false,
-                    Errors = roleResult.Errors.Select(e => e.Description)
-                };
+                var errors = string.Empty;
+
+                foreach (var error in result.Errors)
+                    errors += $"{error.Description},";
+
+                return new AuthResult { Message = errors };
             }
 
-            return new AuthResult { Succeeded = true };
+            var accessToken = await GetTokenAsync(user);
+
+            var refreshToken = GenerateRefreshToken();
+            user.RefreshTokens?.Add(refreshToken);
+            await userManager.UpdateAsync(user);
+
+            return new AuthResult
+            {
+                IsAuthenticated = true,
+                Username = user.UserName,
+                Roles = UserDto.Role.ToString().Split(',').ToList(),
+                Token = new JwtSecurityTokenHandler().WriteToken(accessToken),
+                ExpiresAt = accessToken.ValidTo,
+                RefreshToken = refreshToken.Token,
+                RefreshTokenExpiration = refreshToken.ExpiresAt
+            };
         }
 
-        public async Task<ApplicationUser> LoginAsync(LoginDto dto)
+        public async Task<AuthResult> LoginAsync(LoginDto dto)
         {
+            var authResult = new AuthResult();
+
             // Check of account is exists
-            ApplicationUser userFromDb = await userManager.FindByNameAsync(dto.Username);
+            ApplicationUser userFromDb = await userManager.FindByEmailAsync(dto.Email);
 
-            if (userFromDb != null)
-                await userManager.CheckPasswordAsync(userFromDb, dto.Password);
+            if (userFromDb is null || !await userManager.CheckPasswordAsync(userFromDb, dto.Password))
+            {
+                authResult.Message = "Email or Password is incorrect!";
+                return authResult;
+            }
 
-            return userFromDb;
+            var accessToken = await GetTokenAsync(userFromDb);
+            var refreshToken = GenerateRefreshToken();
+            
+            var rolesList = await userManager.GetRolesAsync(userFromDb);
+
+            authResult.IsAuthenticated = true;
+            authResult.Email = userFromDb.Email;
+            authResult.Username = userFromDb.UserName;
+            authResult.Roles = rolesList.ToList();
+            authResult.Token = new JwtSecurityTokenHandler().WriteToken(accessToken);
+            authResult.ExpiresAt = accessToken.ValidTo;
+
+            var activeRefreshToken = userFromDb.RefreshTokens.FirstOrDefault(t => t.IsActive);
+
+            if (activeRefreshToken is null)
+            {
+                activeRefreshToken = GenerateRefreshToken();
+                userFromDb.RefreshTokens.Add(activeRefreshToken);
+                await userManager.UpdateAsync(userFromDb);
+            }
+
+            authResult.RefreshToken = activeRefreshToken.Token;
+            authResult.RefreshTokenExpiration = activeRefreshToken.ExpiresAt;
+
+            return authResult;
+        }
+
+        public async Task<AuthResult> RefreshTokenAsync(string token)
+        {
+            var authModel = new AuthResult();
+
+            var user = await userManager.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == token));
+            // token بتاعه refreshToken اللي ال user يعني عايز ال
+
+            if (user == null)
+            {
+                authModel.Message = "Invalid token";
+                return authModel;
+            }
+
+            var refreshToken = user.RefreshTokens.Single(t => t.Token == token);
+
+            if (!refreshToken.IsActive)
+            {
+                authModel.Message = "Inactive token";
+                return authModel;
+            }
+
+            refreshToken.RevokedAt = DateTime.UtcNow;
+
+            var newRefreshToken = GenerateRefreshToken();
+            user.RefreshTokens.Add(newRefreshToken);
+            await userManager.UpdateAsync(user);
+
+            var jwtToken = await GetTokenAsync(user);
+
+            authModel.IsAuthenticated = true;
+            authModel.Token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+            authModel.Email = user.Email;
+            authModel.Username = user.UserName;
+            var roles = await userManager.GetRolesAsync(user);
+            authModel.Roles = roles.ToList();
+            authModel.RefreshToken = newRefreshToken.Token;
+            authModel.RefreshTokenExpiration = newRefreshToken.ExpiresAt;
+
+            return authModel;
+        }
+
+        public async Task<bool> RevokeTokenAsync(string token)
+        {
+            var user = await userManager.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == token));
+
+            if (user == null)
+                return false;
+
+            var refreshToken = user.RefreshTokens.Single(t => t.Token == token);
+
+            if (!refreshToken.IsActive)
+                return false;
+
+            refreshToken.RevokedAt = DateTime.UtcNow;
+
+            await userManager.UpdateAsync(user);
+
+            return true;
         }
 
         public async Task<ApplicationUser> ExternalLoginAsync(ExternalLoginDto model)
@@ -110,17 +223,18 @@ namespace ELProject.DataAccess.Repositories.Repos
 
             if (!result.Succeeded)
             {
-                return new AuthResult
-                {
-                    Succeeded = false,
-                    Errors = result.Errors.Select(e => e.Description)
-                };
+                var errors = string.Empty;
+
+                foreach (var error in result.Errors)
+                    errors += $"{error.Description},";
+
+                return new AuthResult { Message = errors };
             }
 
-            return new AuthResult { Succeeded = true };
+            return new AuthResult { IsAuthenticated = true };
         }
 
-        public async Task<string> GetTokenAsync(ApplicationUser user)
+        public async Task<JwtSecurityToken> GetTokenAsync(ApplicationUser user)
         {
             var claims = new List<Claim>
             {
@@ -139,7 +253,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 key,
                 SecurityAlgorithms.HmacSha256);
 
-            var token = new JwtSecurityToken(
+            var jwtSecurityToken = new JwtSecurityToken(
                 issuer: _config["JWT:Issuer"],
                 audience: _config["JWT:Audience"],
                 claims: claims,
@@ -147,7 +261,23 @@ namespace ELProject.DataAccess.Repositories.Repos
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return jwtSecurityToken;
+        }
+
+        public RefreshToken GenerateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumber);
+                return new RefreshToken
+                {
+                    Token = Convert.ToBase64String(randomNumber),
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7)
+                };
+            }
+
         }
     }
 }
