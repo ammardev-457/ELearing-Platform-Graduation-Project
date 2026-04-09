@@ -46,7 +46,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 /// - Tomorrow in Azure Blob
                 /// - After that in AWS S3
                 ///</summary>
-                user.ProfileImage = await fileStorageService.SaveFileAsync(UserDto.ProfileImageFile);
+                user.ProfileImage = await fileStorageService.SaveFileInWwwrootAsync(UserDto.ProfileImageFile);
 
             // Save in DB
             var result = await userManager.CreateAsync(user, UserDto.Password);
@@ -264,7 +264,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             return jwtSecurityToken;
         }
 
-        public RefreshToken GenerateRefreshToken()
+        private RefreshToken GenerateRefreshToken()
         {
             var randomNumber = new byte[32];
             using (var rng = RandomNumberGenerator.Create())

@@ -16,7 +16,7 @@ public class FileStorageService : IFileStorageService
 {
     private readonly IWebHostEnvironment _environment;
 
-    private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
+    private const long MaxFileSize = 2 * 1024 * 1024; // 2MB
     private readonly string[] _allowedExtensions =
         { ".jpg", ".jpeg", ".png", ".webp" };
 
@@ -25,28 +25,26 @@ public class FileStorageService : IFileStorageService
         _environment = environment;
     }
 
-    public async Task<string?> SaveFileAsync(IFormFile? file)
+    public async Task<string?> SaveFileInWwwrootAsync(IFormFile? file)
     {
         if (file == null || file.Length == 0)
             return null;
 
-        // ✅ Validate size
+        // Validate size
         if (file.Length > MaxFileSize)
-            return "File size must be less than 5MB.";
+            return "File size must be less than 2MB.";
 
-        // ✅ Validate extension
+        // Validate extension
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
         if (!_allowedExtensions.Contains(extension))
             return "Invalid image format.";
 
-        // ✅ Generate unique file name
+        // Generate unique file name
         var fileName = $"{Guid.NewGuid()}{extension}";
 
-        // ✅ Generic storage folder
-        var uploadsFolder = Path.Combine(
-            _environment.WebRootPath,
-            "uploads");
+        // Generic storage folder
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads");
 
         if (!Directory.Exists(uploadsFolder))
             Directory.CreateDirectory(uploadsFolder);
@@ -58,8 +56,7 @@ public class FileStorageService : IFileStorageService
             await file.CopyToAsync(stream);
         }
 
-        // ✅ Return relative path (what gets stored in DB)
-        return Path.Combine("uploads", fileName)
-                   .Replace("\\", "/");
+        // Return relative path (what gets stored in DB)
+        return Path.Combine("uploads", fileName).Replace("\\", "/");
     }
 }

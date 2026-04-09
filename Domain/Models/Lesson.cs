@@ -17,19 +17,19 @@ namespace ELProject.Domain.Models
         // 2. المحتوى الخفيف (Simple Content)
         // ==========================================
         
-        // لو النوع Video
+        // Video لو النوع
         public string? VideoUrl { get; set; }       //  رابط الفيديو (S3/Azure)
         public ProcessingStatus ProcessingStatus { get; set; } = ProcessingStatus.Pending; // حالة المعالجة
         public int? DurationInSeconds { get; set; } // مدة الفيديو
 
-        // لو النوع File (PDF/Zip)
+        // File (PDF/Zip) لو النوع
         public string? AttachmentUrl { get; set; }  // رابط التحميل
 
         // ==========================================
         // 3. المحتوى المعقد (Complex Content)
         // ==========================================
         
-        // لو النوع Quiz
+        // Quiz لو النوع
         public int? QuizId { get; set; } // Foreign Key (Optional)
         public Quiz? Quiz { get; set; }  // Navigation Property
 

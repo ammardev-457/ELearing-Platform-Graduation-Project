@@ -2,6 +2,6 @@
 {
     public interface IFileStorageService
     {
-        Task<string?> SaveFileAsync(IFormFile file);
+        Task<string?> SaveFileInWwwrootAsync(IFormFile file);
     }
 }
