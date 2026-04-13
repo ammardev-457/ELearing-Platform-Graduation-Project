@@ -1,5 +1,6 @@
-using ELProject.DataAccess.Repositories;
+﻿using ELProject.DataAccess.Repositories;
 using ELProject.Domain.Models;
+using ELProject.ExternalServices;
 using ELProject.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -13,10 +14,29 @@ namespace ELProject.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IFileStorageService fileService;
 
-        public CoursesController(IUnitOfWork unitOfWork)
+        public CoursesController(IUnitOfWork unitOfWork, IFileStorageService _fileService)
         {
             _unitOfWork = unitOfWork;
+            fileService = _fileService;
+        }
+
+
+        [HttpPost("{courseId}/upload-thumbnail")]
+        public async Task<IActionResult> UploadThumbnail(int courseId, IFormFile image) // [FromForm] is optional
+        { // form-data من ال Automatic Binding بيعملها ASP.NET Core ال IFormFile
+
+            var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
+            if (course == null) return NotFound("Course Not Found");
+
+            var url = await fileService.SaveFileAsync(image);
+            course.Thumbnail = url;
+
+            _unitOfWork.Courses.Update(course);
+            await _unitOfWork.CompleteAsync();
+
+            return Ok(new { Thumbnail = url });
         }
 
         [Authorize(Roles = "Instructor")]
@@ -31,7 +51,10 @@ namespace ELProject.Controllers
                 Title = courseDto.Title,
                 Price = courseDto.Price,
                 UserId = InstructorId,
-                CategoryId = courseDto.CategoryId
+                CategoryId = courseDto.CategoryId,
+                // Seif Edition
+                CreatedDate = DateTime.UtcNow,
+                Level = courseDto.Level
             };
 
             await _unitOfWork.Courses.AddAsync(course);
@@ -41,12 +64,13 @@ namespace ELProject.Controllers
             return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, course);
         }
 
+
         // To add multiple roles, use a comma-separated string
         [Authorize(Roles = "Student,Admin,Instructor")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCourse(int id)
         {
-            var course = await _unitOfWork.Courses.GetByIdAsync(id); 
+            var course = await _unitOfWork.Courses.GetByIdAsync(id);
             return course == null ? NotFound("Course Not Found") : Ok(course);
         }
 
@@ -57,5 +81,14 @@ namespace ELProject.Controllers
         //     var courses = await _unitOfWork.Courses.GetAllAsync();
         //     return Ok(courses);
         // }
+
+
+        //[HttpPost("upload-pdf")]
+        //public async Task<IActionResult> UploadPdf(IFormFile pdf)
+        //{
+        //    var url = await fileService.SaveFileAsync(pdf);
+        //    return Ok(new { url });
+        //}
+
     }
 }
