@@ -46,7 +46,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 /// - Tomorrow in Azure Blob
                 /// - After that in AWS S3
                 ///</summary>
-                user.ProfileImage = await fileStorageService.SaveFileInWwwrootAsync(UserDto.ProfileImageFile);
+                user.PathOfProfileImageInDb = await fileStorageService.SaveImageAsync(UserDto.ProfileImageFile);
 
             // Save in DB
             var result = await userManager.CreateAsync(user, UserDto.Password);

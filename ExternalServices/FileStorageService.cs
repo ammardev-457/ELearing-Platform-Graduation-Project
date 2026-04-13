@@ -25,7 +25,7 @@ public class FileStorageService : IFileStorageService
         _environment = environment;
     }
 
-    public async Task<string?> SaveFileInWwwrootAsync(IFormFile? file)
+    public async Task<string?> SaveImageAsync(IFormFile? file)
     {
         if (file == null || file.Length == 0)
             return null;
@@ -41,7 +41,7 @@ public class FileStorageService : IFileStorageService
             return "Invalid image format.";
 
         // Generate unique file name
-        var fileName = $"{Guid.NewGuid()}{extension}";
+        var FakeFileName = Path.GetRandomFileName();
 
         // Generic storage folder
         var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads");
@@ -49,7 +49,8 @@ public class FileStorageService : IFileStorageService
         if (!Directory.Exists(uploadsFolder))
             Directory.CreateDirectory(uploadsFolder);
 
-        var filePath = Path.Combine(uploadsFolder, fileName);
+        // بتاعتي file اللي هيكون عليه ال path دا ال
+        var filePath = Path.Combine(uploadsFolder, FakeFileName);
 
         using (var stream = new FileStream(filePath, FileMode.Create))
         {
@@ -57,6 +58,6 @@ public class FileStorageService : IFileStorageService
         }
 
         // Return relative path (what gets stored in DB)
-        return Path.Combine("uploads", fileName).Replace("\\", "/");
+        return Path.Combine("uploads", FakeFileName).Replace("\\", "/");
     }
 }

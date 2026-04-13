@@ -1,4 +1,5 @@
-﻿using ELProject.DataAccess.Repositories.Repos;
+﻿using Azure.Core;
+using ELProject.DataAccess.Repositories.Repos;
 using ELProject.Domain.Models;
 using ELProject.Shared;
 using ELProject.Shared.DTOs.Auth;
@@ -20,6 +21,12 @@ namespace ELProject.Controllers
         }
 
         [HttpPost("register")] // api/Auth/register
+        /// <summary>
+        /// هنا؟ [FromForm] ليه بنستخدم 🧠 
+        /// : لأن
+        /// JSON مينفعش ييجي في IFormFile
+        /// multipart/form-data يكون request لازم ال
+        /// 
         public async Task<IActionResult> RegisterAsync([FromForm]RegisterDto UserDto)
         {
             var result = await authRepo.RegisterAsync(UserDto);
