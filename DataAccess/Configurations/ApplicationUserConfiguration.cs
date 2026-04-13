@@ -8,7 +8,7 @@ namespace ELProject.DataAccess.Configurations
     {
         public void Configure(EntityTypeBuilder<ApplicationUser> builder)
         {
-            builder.Property(u => u.ProfileImage)
+            builder.Property(u => u.PathOfProfileImageInDb)
                 .HasMaxLength(500); 
 
             builder.Property(u => u.Gender)
