@@ -11,7 +11,10 @@ namespace ELProject.Domain.Models
         [Required]
         public string Title { get; set; } = null!;
 
-        public string? Description { get; set; }
+        public string? ShortDescription { get; set; }
+        public string? LongDescription { get; set; }
+
+        public string? Thumbnail { get; set; }
 
         public DateTime CreatedDate { get; set; }
 
@@ -33,6 +36,6 @@ namespace ELProject.Domain.Models
         public ICollection<Quiz> Quizzes { get; set; } = [];
         public ICollection<Enrollment> Enrollments { get; set; } = [];
         public ICollection<Review> Reviews { get; set; } = [];
-        public ICollection<Order> Orders {get; set;} = [];
+        public ICollection<Order> Orders { get; set; } = [];
     }
 }

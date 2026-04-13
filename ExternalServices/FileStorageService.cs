@@ -1,5 +1,7 @@
-﻿using ELProject.ExternalServices;
+﻿using ELProject.Domain.Models;
+using ELProject.ExternalServices;
 using Microsoft.AspNetCore.Hosting;
+using static System.Net.Mime.MediaTypeNames;
 
 /// <summary>
 /// Provides file storage functionality for uploaded files.
@@ -25,17 +27,17 @@ public class FileStorageService : IFileStorageService
         _environment = environment;
     }
 
-    public async Task<string?> SaveImageAsync(IFormFile? file)
+    public async Task<string?> SaveImageAsync(IFormFile? image)
     {
-        if (file == null || file.Length == 0)
+        if (image == null || image.Length == 0)
             return null;
 
         // Validate size
-        if (file.Length > MaxFileSize)
+        if (image.Length > MaxFileSize)
             return "File size must be less than 2MB.";
 
         // Validate extension
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
 
         if (!_allowedExtensions.Contains(extension))
             return "Invalid image format.";
@@ -54,10 +56,12 @@ public class FileStorageService : IFileStorageService
 
         using (var stream = new FileStream(filePath, FileMode.Create))
         {
-            await file.CopyToAsync(stream);
+            await image.CopyToAsync(stream);
         }
 
         // Return relative path (what gets stored in DB)
         return Path.Combine("uploads", FakeFileName).Replace("\\", "/");
     }
+
+    
 }
