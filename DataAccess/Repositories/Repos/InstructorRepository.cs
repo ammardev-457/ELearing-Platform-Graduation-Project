@@ -1,4 +1,5 @@
-﻿using ELProject.Domain.Enums;
+﻿using ELProject.DataAccess.Repositories.Interfaces;
+using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.Shared.DTOs.Instructor;
 using Microsoft.EntityFrameworkCore;

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using ELProject.Shared.DTOs;
 
-namespace ELProject.DataAccess.Repositories
+namespace ELProject.DataAccess.Repositories.Interfaces
 {
     public interface IRepository<T, TKey> where T : class  
     {

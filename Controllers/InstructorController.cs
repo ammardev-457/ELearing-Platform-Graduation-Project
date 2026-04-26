@@ -1,4 +1,4 @@
-﻿using ELProject.DataAccess.Repositories;
+﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.DataAccess.Repositories.Repos;
 using ELProject.Domain.Models;
 using Microsoft.AspNetCore.Authorization;

@@ -1,6 +1,6 @@
 
 using System.Reflection.Metadata.Ecma335;
-using ELProject.DataAccess.Repositories;
+using ELProject.DataAccess.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

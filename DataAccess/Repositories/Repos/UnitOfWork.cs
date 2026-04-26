@@ -1,3 +1,5 @@
+using ELProject.DataAccess.Repositories.Interfaces;
+
 namespace ELProject.DataAccess.Repositories.Repos
 {
     public class UnitOfWork : IUnitOfWork
@@ -13,6 +15,8 @@ namespace ELProject.DataAccess.Repositories.Repos
 
         public IUserRepository Users {get; private set;} = null!;
 
+        public ILessonRepository Lessons {get; private set;} = null!;
+
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
@@ -20,6 +24,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             Transactions = new TransactionRepository(_context);
             Enrollments = new EnrollmentRepository(_context);
             Courses = new CourseRepository(_context);
+            Lessons = new LessonRepository(_context);
             Users = new UserRepository(_context);
         }
 
