@@ -1,3 +1,4 @@
+using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
 
 namespace ELProject.DataAccess.Repositories.Repos

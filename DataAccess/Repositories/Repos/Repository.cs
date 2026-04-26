@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using ELProject.Shared.DTOs;
+using ELProject.DataAccess.Repositories.Interfaces;
 
 namespace ELProject.DataAccess.Repositories.Repos
 {

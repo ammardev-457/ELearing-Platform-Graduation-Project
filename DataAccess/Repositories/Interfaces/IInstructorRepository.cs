@@ -1,6 +1,6 @@
 ﻿using ELProject.Shared.DTOs.Instructor;
 
-namespace ELProject.DataAccess.Repositories
+namespace ELProject.DataAccess.Repositories.Interfaces
 {
     public interface IInstructorRepository
     {

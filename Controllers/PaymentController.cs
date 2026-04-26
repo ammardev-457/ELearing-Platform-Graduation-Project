@@ -2,7 +2,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using ELProject.DataAccess.Repositories;
+using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;

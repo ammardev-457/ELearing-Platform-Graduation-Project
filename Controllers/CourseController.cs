@@ -1,4 +1,5 @@
-﻿using ELProject.DataAccess.Repositories;
+﻿using ELProject.DataAccess.Repositories.Interfaces;
+using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
 using ELProject.Shared.DTOs;
@@ -14,12 +15,12 @@ namespace ELProject.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IFileStorageService fileService;
+        private readonly ICloudStorageService cloudService;
 
-        public CoursesController(IUnitOfWork unitOfWork, IFileStorageService _fileService)
+        public CoursesController(IUnitOfWork unitOfWork, ICloudStorageService _cloudService)
         {
             _unitOfWork = unitOfWork;
-            fileService = _fileService;
+            cloudService = _cloudService;
         }
 
 
@@ -30,7 +31,7 @@ namespace ELProject.Controllers
             var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
             if (course == null) return NotFound("Course Not Found");
 
-            var url = await fileService.SaveFileAsync(image);
+            var url = await cloudService.UploadFileAsync(image, FileType.Image);
             course.Thumbnail = url;
 
             _unitOfWork.Courses.Update(course);
@@ -52,9 +53,10 @@ namespace ELProject.Controllers
                 Price = courseDto.Price,
                 UserId = InstructorId,
                 CategoryId = courseDto.CategoryId,
-                // Seif Edition
                 CreatedDate = DateTime.UtcNow,
-                Level = courseDto.Level
+                Level = courseDto.Level,
+                ShortDescription = courseDto.ShortDescription,
+                LongDescription = courseDto.LongDescription
             };
 
             await _unitOfWork.Courses.AddAsync(course);
@@ -83,12 +85,17 @@ namespace ELProject.Controllers
         // }
 
 
-        //[HttpPost("upload-pdf")]
-        //public async Task<IActionResult> UploadPdf(IFormFile pdf)
-        //{
-        //    var url = await fileService.SaveFileAsync(pdf);
-        //    return Ok(new { url });
-        //}
+        [HttpGet("download")]
+        public async Task<IActionResult> DownloadFile(string fileUrl, FileType type)
+        {
+            var result = await cloudService.DownloadFileAsync(fileUrl, type);
+
+            if (result == null)
+                return NotFound();
+
+            return File(result.Value.stream, result.Value.contentType, result.Value.fileName);
+        }
+
 
     }
 }
