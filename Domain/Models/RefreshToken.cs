@@ -12,3 +12,4 @@ namespace ELProject.Domain.Models
         public DateTime? RevokedAt { get; set; }
         public bool IsActive => RevokedAt == null && !IsExpired;
     }
+}

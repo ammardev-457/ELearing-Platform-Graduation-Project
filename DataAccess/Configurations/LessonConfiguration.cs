@@ -18,23 +18,14 @@ namespace ELProject.DataAccess.Configurations
             builder.Property(l => l.Order)
                 .IsRequired();
 
-            builder.Property(l => l.IsFreePreview)
-                .HasDefaultValue(false);
+            builder.Ignore(l => l.IsFreePreview);
 
             // Enums
             builder.Property(l => l.Type)
                 .HasConversion<string>()
                 .HasMaxLength(50);
-
-            builder.Property(l => l.ProcessingStatus)
-                .HasConversion<string>()
-                .HasMaxLength(50);
-
-            // Optional Content
-            builder.Property(l => l.VideoUrl)
-                .HasMaxLength(1000);
-
-            builder.Property(l => l.AttachmentUrl)
+            
+            builder.Property(l => l.FileUrl)
                 .HasMaxLength(1000);
 
             builder.Property(l => l.DurationInSeconds)
