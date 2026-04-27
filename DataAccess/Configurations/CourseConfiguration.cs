@@ -15,7 +15,10 @@ namespace ELProject.DataAccess.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
-            builder.Property(c => c.Description)
+            builder.Property(c => c.ShortDescription)
+                .HasMaxLength(2000); // وصف طويل
+
+            builder.Property(c => c.LongDescription)
                 .HasMaxLength(2000); // وصف طويل
 
             builder.Property(c => c.CreatedDate)
