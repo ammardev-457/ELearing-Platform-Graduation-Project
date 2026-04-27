@@ -5,42 +5,14 @@ using ELProject.Domain.Enums;
 using ELProject.ExternalServices;
 using System.Data.Common;
 
-public class AzureBlobStorageService : ICloudStorageService, IFileStorageService
+public class AzureBlobStorageService : IFileStorageService
 {
     private readonly BlobServiceClient _serviceClient;
-    private readonly string ConnectionString; 
 
     public AzureBlobStorageService(IConfiguration config)
     {
-        ConnectionString = config.GetConnectionString("AzureBlobStorage")
-            ?? throw new InvalidOperationException("AzureBlobStorage connection string is not configured.");
-
-        _serviceClient = new BlobServiceClient(ConnectionString);
-    }
-
-    public string GenerateUploadSas(string fileName, FileType type)
-    {
-        var containerName = type switch
-        {
-            FileType.Image => "images",
-            FileType.Pdf => "pdfs",
-            FileType.Video => "videos",
-            _ => "misc"
-        };
-
-        // Generate unique blob name
-        var blobName = $"{Guid.NewGuid()}_{fileName}";
-
-        // Create BlobClient
-        var blobClient = new BlobClient(ConnectionString, containerName, blobName);
-
-        // Generate SAS URI with Write permission
-        var sasUri = blobClient.GenerateSasUri(
-            BlobSasPermissions.Write,
-            DateTimeOffset.UtcNow.AddMinutes(5)
-        );
-
-        return sasUri.ToString();
+        _serviceClient = new BlobServiceClient(
+            config.GetConnectionString("AzureBlobStorage"));
     }
 
     public async Task<string?> UploadFileAsync(IFormFile file, FileType type)

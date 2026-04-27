@@ -14,29 +14,18 @@ namespace ELProject.Controllers
     public class LessonController : ControllerBase
     {
         private readonly IUnitOfWork unitOfWork;
-        private readonly ICloudStorageService cloudService;
+        private readonly IFileStorageService fileService;
 
-        public LessonController(IUnitOfWork unitOfWork, ICloudStorageService _cloudService)
+        public LessonController(IUnitOfWork unitOfWork, IFileStorageService _fileService)
         {
             this.unitOfWork = unitOfWork;
-            cloudService = _cloudService;
-        }
-
-        [HttpPost("upload-url/{fileName}/{type}")]
-        public IActionResult GetUploadUrl(string fileName, FileType type)
-        {
-            var url = cloudService.GenerateUploadSas(fileName, type);
-
-            return Ok(new
-            {
-                uploadUrl = url
-            });
+            fileService = _fileService;
         }
 
         [HttpPost("create-lesson")]
         public async Task<IActionResult> CreateLesson([FromForm] CreateNewLessonDto dto)
         {
-            var url = await cloudService.UploadFileAsync(dto.File, dto.Type);
+            var url = await fileService.UploadFileAsync(dto.File, dto.Type);
 
             Lesson newLesson = new()
             {
@@ -61,7 +50,7 @@ namespace ELProject.Controllers
             if (lesson == null)
                 return NotFound("Lesson Not Found");
 
-            var x = await cloudService.DownloadFileAsync(lesson.FileUrl!, lesson.Type);
+            var x = await fileService.DownloadFileAsync(lesson.FileUrl!, lesson.Type);
 
             if (x == null)
                 return NotFound("File Not Found");

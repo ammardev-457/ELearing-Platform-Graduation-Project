@@ -15,12 +15,12 @@ namespace ELProject.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ICloudStorageService cloudService;
+        private readonly IFileStorageService fileService;
 
-        public CoursesController(IUnitOfWork unitOfWork, ICloudStorageService _cloudService)
+        public CoursesController(IUnitOfWork unitOfWork, IFileStorageService _fileService)
         {
             _unitOfWork = unitOfWork;
-            cloudService = _cloudService;
+            fileService = _fileService;
         }
 
 
@@ -31,7 +31,7 @@ namespace ELProject.Controllers
             var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
             if (course == null) return NotFound("Course Not Found");
 
-            var url = await cloudService.UploadFileAsync(image, FileType.Image);
+            var url = await fileService.UploadFileAsync(image, FileType.Image);
             course.Thumbnail = url;
 
             _unitOfWork.Courses.Update(course);
@@ -88,7 +88,7 @@ namespace ELProject.Controllers
         [HttpGet("download")]
         public async Task<IActionResult> DownloadFile(string fileUrl, FileType type)
         {
-            var result = await cloudService.DownloadFileAsync(fileUrl, type);
+            var result = await fileService.DownloadFileAsync(fileUrl, type);
 
             if (result == null)
                 return NotFound();
