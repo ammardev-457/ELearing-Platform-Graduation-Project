@@ -18,15 +18,15 @@ namespace ELProject.DataAccess.Repositories.Repos
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IConfiguration _config;
-        private readonly ICloudStorageService cloudService;
+        private readonly IFileStorageService fileService;
 
         public AuthRepository(UserManager<ApplicationUser> _userManager,
             IConfiguration config,
-            ICloudStorageService _cloudService)
+            IFileStorageService _fileService)
         {
             userManager = _userManager;
             _config = config;
-            cloudService = _cloudService;
+            fileService = _fileService;
         }
 
         public async Task<AuthResult> RegisterAsync(RegisterDto UserDto)
@@ -47,7 +47,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 /// - Tomorrow in Azure Blob
                 /// - After that in AWS S3
                 ///</summary>
-                user.PathOfProfileImageInDb = await cloudService.UploadFileAsync(UserDto.ProfileImageFile, FileType.Image);
+                user.PathOfProfileImageInDb = await fileService.UploadFileAsync(UserDto.ProfileImageFile, FileType.Image);
 
             // Save in DB
             var result = await userManager.CreateAsync(user, UserDto.Password);

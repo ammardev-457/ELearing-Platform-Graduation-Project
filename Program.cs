@@ -31,7 +31,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<AuthRepository>(); // مهم جداً عشان الـ Login
-builder.Services.AddScoped<ICloudStorageService, AzureBlobStorageService>();
+builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
 builder.Services.AddScoped<IInstructorRepository, InstructorRepository>();
 
 builder.Services.AddHttpClient<PaymobService>();
