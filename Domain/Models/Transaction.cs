@@ -10,7 +10,7 @@ namespace ELProject.Domain.Models
         public string TransactionId { get; set; } = null!;    // Paymob transaction_id
         public long Amount { get; set; }
         public string Currency { get; set; } = "EGP";
-        public string Status { get; set; } = TransactionStatus.Pending.ToString(); // pending / success / failed / refunded
+        public string Status { get; set; } = PaymentStatus.Pending.ToString(); // pending / success / failed / refunded
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public virtual Order Order { get; set; } = null!;

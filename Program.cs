@@ -93,6 +93,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await DataSeeder.SeedDataAsync(app.Services);
+await ComprehensiveDataSeeder.SeedAllDataAsync(app.Services);
 
 app.Run();

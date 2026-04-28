@@ -12,7 +12,7 @@ public class AzureBlobStorageService : IFileStorageService
     public AzureBlobStorageService(IConfiguration config)
     {
         _serviceClient = new BlobServiceClient(
-            config.GetConnectionString("AzureBlobStorage"));
+            config.GetSection("AzureBlobStorage")["ConnectionString"]);
     }
 
     public async Task<string?> UploadFileAsync(IFormFile file, FileType type)

@@ -1,3 +1,5 @@
+using ELProject.Domain.Enums;
+
 namespace ELProject.Domain.Models
 {
     public class Question
@@ -6,7 +8,7 @@ namespace ELProject.Domain.Models
 
         public string QuestionText { get; set; } = null!;
 
-        public string QuestionType { get; set; } = null!;
+        public QuestionType QuestionType { get; set; } = QuestionType.MultipleChoice;
 
         public List<string> Options { get; set; } = null!; // How choose answer??
 

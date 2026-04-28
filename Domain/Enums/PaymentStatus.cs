@@ -1,6 +1,6 @@
 namespace ELProject.Domain.Enums
 {
-    public enum TransactionStatus
+    public enum PaymentStatus
     {
         Pending,
         Success,

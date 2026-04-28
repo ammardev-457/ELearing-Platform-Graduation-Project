@@ -27,7 +27,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                     CreatedDate = c.CreatedDate,
                     Rate = c.Reviews.Any() ? c.Reviews.Average(r => r.Rating) : 0,
                     StudentsCount = c.Enrollments.Count(),
-                    Revenue = c.Orders.Where(o => o.Status == OrderStatus.Success.ToString()).Sum(o => (decimal?)o.Amount) ?? 0
+                    Revenue = c.Orders.Where(o => o.Status == PaymentStatus.Success.ToString()).Sum(o => (decimal?)o.Amount) ?? 0
                 })
                 .ToListAsync();
 
@@ -52,7 +52,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .AverageAsync() ?? 0;
 
             var totalRevenue = await _context.Orders
-                .Where(o => o.Course.UserId == instructorId && o.Status == OrderStatus.Success.ToString())
+                .Where(o => o.Course.UserId == instructorId && o.Status == PaymentStatus.Success.ToString())
                 .Select(o => (decimal?)o.Amount)
                 .SumAsync() ?? 0;
 

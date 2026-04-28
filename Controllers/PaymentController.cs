@@ -45,7 +45,7 @@ namespace ELProject.Controllers
                 StudentId = userId,
                 CourseId = course.Id,
                 Amount = (long)Math.Round(course.Price * 100),
-                Status = OrderStatus.Pending.ToString(),
+                Status = Domain.Enums.PaymentStatus.Pending.ToString(),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -90,11 +90,11 @@ namespace ELProject.Controllers
                 {
                     var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
 
-                    if (order != null && order.Status == OrderStatus.Pending.ToString())
+                    if (order != null && order.Status == Domain.Enums.PaymentStatus.Pending.ToString())
                     {
                         if (isSuccess)
                         {
-                            order.Status = OrderStatus.Success.ToString();
+                            order.Status = Domain.Enums.PaymentStatus.Success.ToString();
                             order.UpdatedAt = DateTime.UtcNow;
                             _unitOfWork.Orders.Update(order);
 

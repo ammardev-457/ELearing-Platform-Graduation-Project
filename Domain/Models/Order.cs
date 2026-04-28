@@ -11,7 +11,7 @@ namespace ELProject.Domain.Models
         public long Amount { get; set; }
         public string Currency { get; set; } = "EGP";
         public long? PaymobOrderId { get; set; }
-        public string Status { get; set; } = OrderStatus.Pending.ToString();
+        public string Status { get; set; } = PaymentStatus.Pending.ToString();
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<Transaction> Transactions { get; set; } = [];

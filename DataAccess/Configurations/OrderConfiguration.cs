@@ -27,7 +27,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.Status)
                .HasMaxLength(50)         
-               .HasDefaultValue(OrderStatus.Pending)  
+               .HasDefaultValue(PaymentStatus.Pending)  
                .IsRequired();
 
         builder.Property(o => o.PaymobOrderId)   
