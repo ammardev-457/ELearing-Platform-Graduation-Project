@@ -7,13 +7,14 @@ public class RegisterDto
     [Required]
     [StringLength(50, MinimumLength = 3)]
     [RegularExpression(@"^[a-zA-Z0-9_]+$",
-        ErrorMessage = "Username can only contain letters, numbers, and underscores.")]
-    public string Username { get; set; } = string.Empty;
+        ErrorMessage = "Name can only contain letters, numbers, and underscores.")]
+    public string Name { get; set; } = string.Empty;
 
+    [Required]
     [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
     [StringLength(254, ErrorMessage = "Email cannot exceed 254 characters.")]
     [DataType(DataType.EmailAddress)]
-    public string? Email { get; set; }
+    public string Email { get; set; } = string.Empty;
 
     [Required]
     [StringLength(100, MinimumLength = 8,
@@ -30,9 +31,4 @@ public class RegisterDto
 
     [EnumDataType(typeof(Gender), ErrorMessage = "Invalid gender selected.")]
     public Gender? Gender { get; set; }
-
-    // Image uploaded from form
-    public IFormFile? ProfileImageFile { get; set; }
-    //Store image FILE on server (or cloud)
-    //Store only the image PATH in database
 }

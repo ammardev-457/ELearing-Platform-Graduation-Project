@@ -1,4 +1,5 @@
-﻿using ELProject.DataAccess.Results;
+﻿using Azure.Core;
+using ELProject.DataAccess.Results;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -18,47 +20,39 @@ namespace ELProject.DataAccess.Repositories.Repos
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IConfiguration _config;
-        private readonly IFileStorageService fileService;
 
-        public AuthRepository(UserManager<ApplicationUser> _userManager,
-            IConfiguration config,
-            IFileStorageService _fileService)
+        public AuthRepository(UserManager<ApplicationUser> _userManager, IConfiguration config)
         {
             userManager = _userManager;
             _config = config;
-            fileService = _fileService;
         }
 
         public async Task<AuthResult> RegisterAsync(RegisterDto UserDto)
         {
-            if (await userManager.FindByNameAsync(UserDto.Username) is not null)
-                return new AuthResult { Message = "Username is already registered!" };
+            var email = UserDto.Email.Trim().ToLower();
 
-            ApplicationUser user = new();
-            user.UserName = UserDto.Username;
-            user.Email = UserDto.Email;
-            user.Gender = UserDto.Gender;
-            user.Bio = UserDto.Bio;
+            if (await userManager.FindByEmailAsync(email) is not null)
+                return new AuthResult { Message = "Email is already exists!" };
 
-            if (UserDto.ProfileImageFile != null)
-                ///<summary>
-                /// The Storing of ProfileImage now is completely generic.
-                /// - Maybe today you save ProfileImage in wwwroot
-                /// - Tomorrow in Azure Blob
-                /// - After that in AWS S3
-                ///</summary>
-                user.PathOfProfileImageInDb = await fileService.UploadFileAsync(UserDto.ProfileImageFile, FileType.Image);
+            if (!CheckRole(UserDto.Role))
+                return new AuthResult { IsAuthenticated = false, Message = "Invalid role" };
+
+            ApplicationUser user = new()
+            {
+                Name = UserDto.Name,
+                UserName = $"{UserDto.Email.Split('@')[0]}-{Guid.NewGuid()}",
+                Email = UserDto.Email,
+                Gender = UserDto.Gender,
+                Bio = UserDto.Bio,
+                EmailConfirmed = true
+            };
 
             // Save in DB
             var result = await userManager.CreateAsync(user, UserDto.Password);
 
             if (!result.Succeeded)
             {
-                var errors = string.Empty;
-
-                foreach (var error in result.Errors)
-                    errors += $"{error.Description},";
-
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
                 return new AuthResult { Message = errors };
             }
 
@@ -66,11 +60,8 @@ namespace ELProject.DataAccess.Repositories.Repos
 
             if (!roleResult.Succeeded)
             {
-                var errors = string.Empty;
-
-                foreach (var error in result.Errors)
-                    errors += $"{error.Description},";
-
+                await userManager.DeleteAsync(user); // rollback, because there is no user without role
+                var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
                 return new AuthResult { Message = errors };
             }
 
@@ -80,11 +71,13 @@ namespace ELProject.DataAccess.Repositories.Repos
             user.RefreshTokens?.Add(refreshToken);
             await userManager.UpdateAsync(user);
 
+            var roles = await userManager.GetRolesAsync(user);
+
             return new AuthResult
             {
                 IsAuthenticated = true,
-                Username = user.UserName,
-                Roles = UserDto.Role.ToString().Split(',').ToList(),
+                Name = user.Name,
+                Roles = roles.ToList(),
                 Token = new JwtSecurityTokenHandler().WriteToken(accessToken),
                 ExpiresAt = accessToken.ValidTo,
                 RefreshToken = refreshToken.Token,
@@ -96,8 +89,10 @@ namespace ELProject.DataAccess.Repositories.Repos
         {
             var authResult = new AuthResult();
 
-            // Check of account is exists
-            ApplicationUser userFromDb = await userManager.FindByEmailAsync(dto.Email);
+            var email = dto.Email.Trim().ToLower();
+
+            // Check if account exists
+            ApplicationUser userFromDb = await userManager.FindByEmailAsync(email);
 
             if (userFromDb is null || !await userManager.CheckPasswordAsync(userFromDb, dto.Password))
             {
@@ -106,13 +101,12 @@ namespace ELProject.DataAccess.Repositories.Repos
             }
 
             var accessToken = await GetTokenAsync(userFromDb);
-            var refreshToken = GenerateRefreshToken();
-            
+
             var rolesList = await userManager.GetRolesAsync(userFromDb);
 
             authResult.IsAuthenticated = true;
             authResult.Email = userFromDb.Email;
-            authResult.Username = userFromDb.UserName;
+            authResult.Name = userFromDb.Name;
             authResult.Roles = rolesList.ToList();
             authResult.Token = new JwtSecurityTokenHandler().WriteToken(accessToken);
             authResult.ExpiresAt = accessToken.ValidTo;
@@ -134,43 +128,62 @@ namespace ELProject.DataAccess.Repositories.Repos
 
         public async Task<AuthResult> RefreshTokenAsync(string token)
         {
-            var authModel = new AuthResult();
+            var authResult = new AuthResult();
 
-            var user = await userManager.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == token));
+            var user = await userManager.Users.SingleOrDefaultAsync(u =>
+            u.RefreshTokens.Any(t => t.Token == token));
             // token بتاعه refreshToken اللي ال user يعني عايز ال
 
             if (user == null)
             {
-                authModel.Message = "Invalid token";
-                return authModel;
+                authResult.Message = "Invalid token";
+                return authResult;
             }
 
+            // Generate a new JWT token because the old one is expired
+            var jwtToken = await GetTokenAsync(user);
+            authResult.Token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+            authResult.ExpiresAt = jwtToken.ValidTo;
+
+            // Check if the refresh token is expired or not
             var refreshToken = user.RefreshTokens.Single(t => t.Token == token);
 
             if (!refreshToken.IsActive)
             {
-                authModel.Message = "Inactive token";
-                return authModel;
+                authResult.Message = "Inactive token";
+                return authResult;
             }
 
-            refreshToken.RevokedAt = DateTime.UtcNow;
+            var remainingTime = refreshToken.ExpiresAt - DateTime.UtcNow;
 
-            var newRefreshToken = GenerateRefreshToken();
-            user.RefreshTokens.Add(newRefreshToken);
+            if (remainingTime <= TimeSpan.FromDays(1))
+            {
+                // if remainingTime less than 1 day, revoke refresh token
+                refreshToken.RevokedAt = DateTime.UtcNow;
+
+                // create a new one
+                var newRefreshToken = GenerateRefreshToken();
+                user.RefreshTokens.Add(newRefreshToken);
+
+                authResult.RefreshToken = newRefreshToken.Token;
+                authResult.RefreshTokenExpiration = newRefreshToken.ExpiresAt;
+            }
+            else
+            {
+                authResult.RefreshToken = refreshToken.Token;
+                authResult.RefreshTokenExpiration = refreshToken.ExpiresAt;
+            }
+
             await userManager.UpdateAsync(user);
 
-            var jwtToken = await GetTokenAsync(user);
+            authResult.IsAuthenticated = true;
+            authResult.Email = user.Email;
+            authResult.Name = user.Name;
 
-            authModel.IsAuthenticated = true;
-            authModel.Token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-            authModel.Email = user.Email;
-            authModel.Username = user.UserName;
             var roles = await userManager.GetRolesAsync(user);
-            authModel.Roles = roles.ToList();
-            authModel.RefreshToken = newRefreshToken.Token;
-            authModel.RefreshTokenExpiration = newRefreshToken.ExpiresAt;
+            authResult.Roles = roles.ToList();
 
-            return authModel;
+            return authResult;
         }
 
         public async Task<bool> RevokeTokenAsync(string token)
@@ -192,9 +205,23 @@ namespace ELProject.DataAccess.Repositories.Repos
             return true;
         }
 
-        public async Task<ApplicationUser> ExternalLoginAsync(ExternalLoginDto model)
+        public async Task<AuthResult> ExternalLoginAsync(ExternalLoginDto model)
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken);
+            var settings = new GoogleJsonWebSignature.ValidationSettings()
+            {
+                Audience = new List<string> { _config["GoogleAuth:ClientId"]! }
+            };
+
+            GoogleJsonWebSignature.Payload payload;
+
+            try
+            {
+                payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken, settings);
+            }
+            catch
+            {
+                return new AuthResult { IsAuthenticated = false, Message = "Invalid Google token" };
+            }
 
             var email = payload.Email;
 
@@ -204,33 +231,122 @@ namespace ELProject.DataAccess.Repositories.Repos
             {
                 user = new ApplicationUser
                 {
-                    UserName = email.Substring(0, email.IndexOf('@')), // To get the first letters before '@'
+                    Name = payload.Name,
+                    UserName = $"{email.Split('@')[0]}-{Guid.NewGuid()}",
                     Email = email,
                     EmailConfirmed = true
                 };
 
-                await userManager.CreateAsync(user);
+                var result = await userManager.CreateAsync(user);
+
+                if (!result.Succeeded)
+                {
+                    var errors = string.Empty;
+
+                    foreach (var error in result.Errors)
+                        errors += $"{error.Description},";
+
+                    return new AuthResult { Message = errors };
+                }
+
+                if (!CheckRole(model.Role))
+                    return new AuthResult { IsAuthenticated = false, Message = "Invalid role" };
+
                 await userManager.AddToRoleAsync(user, model.Role.ToString());
+
+                await userManager.AddLoginAsync(user,
+                    new UserLoginInfo("Google", payload.Subject, "Google"));
+            }
+            else
+            /// <summary>
+            /// سيناريو مهم:
+            /// email/ password سجل قبل كده بـ user
+            /// بنفس الايميل Google Login دلوقتي بيعمل
+            /// 
+            {
+                // Link Google login if not already linked
+                var logins = await userManager.GetLoginsAsync(user);
+
+                if (!logins.Any(l => l.LoginProvider == "Google"))
+                {
+                    await userManager.AddLoginAsync(user,
+                        new UserLoginInfo("Google", payload.Subject, "Google"));
+                }
             }
 
-            return user;
+            var jwt = await GetTokenAsync(user);
+            var refreshToken = GenerateRefreshToken();
+            user.RefreshTokens.Add(refreshToken);
+            await userManager.UpdateAsync(user);
+
+            var roles = await userManager.GetRolesAsync(user);
+            return new AuthResult
+            {
+                IsAuthenticated = true,
+                Name = user.Name,
+                Roles = roles.ToList(),
+                Token = new JwtSecurityTokenHandler().WriteToken(jwt),
+                ExpiresAt = jwt.ValidTo,
+                RefreshToken = refreshToken.Token,
+                RefreshTokenExpiration = refreshToken.ExpiresAt
+            };
         }
 
         public async Task<AuthResult> ChangePasswordAsync(ClaimsPrincipal userFromClaims, ChangePasswordDto dto)
         {
             var user = await userManager.GetUserAsync(userFromClaims);
 
+            if (user == null)
+                return new AuthResult { Message = "User not found" };
+
             var result = await userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
 
             if (!result.Succeeded)
             {
-                var errors = string.Empty;
-
-                foreach (var error in result.Errors)
-                    errors += $"{error.Description},";
-
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
                 return new AuthResult { Message = errors };
             }
+
+            return new AuthResult { IsAuthenticated = true };
+        }
+        
+        public async Task<string?> ForgotPasswordAsync(string email)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+
+            if (user == null)
+                return null;
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            return token;
+        }
+
+        public async Task<AuthResult> ResetPasswordAsync(ResetPasswordDto dto)
+        {
+            var user = await userManager.FindByEmailAsync(dto.Email);
+
+            if (user == null)
+                return new AuthResult { Message = "Invalid request" };
+
+            if (dto.NewPassword != dto.ConfirmPassword)
+                return new AuthResult { Message = "Passwords do not match" };
+
+            var result = await userManager.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                return new AuthResult { Message = errors };
+            }
+
+            // Revoke all refresh tokens after resetting password
+            user.RefreshTokens?
+                .Where(t => t.IsActive)
+                .ToList()
+                .ForEach(t => t.RevokedAt = DateTime.UtcNow);
+
+            await userManager.UpdateAsync(user);
 
             return new AuthResult { IsAuthenticated = true };
         }
@@ -240,7 +356,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.UserName)
+                new Claim(ClaimTypes.Name, user.Name)
             };
 
             var UserRoles = await userManager.GetRolesAsync(user);
@@ -268,17 +384,21 @@ namespace ELProject.DataAccess.Repositories.Repos
         private RefreshToken GenerateRefreshToken()
         {
             var randomNumber = new byte[32];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-                return new RefreshToken
-                {
-                    Token = Convert.ToBase64String(randomNumber),
-                    CreatedAt = DateTime.UtcNow,
-                    ExpiresAt = DateTime.UtcNow.AddDays(7)
-                };
-            }
 
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return new RefreshToken
+            {
+                Token = Convert.ToBase64String(randomNumber),
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
+
+        }
+
+        private bool CheckRole(UserRole role)
+        {
+            return role == UserRole.Student || role == UserRole.Instructor;
         }
     }
 }

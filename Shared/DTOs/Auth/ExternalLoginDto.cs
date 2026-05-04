@@ -9,6 +9,6 @@ namespace ELProject.Shared.DTOs.Auth
 
         [Required]
         [EnumDataType(typeof(UserRole), ErrorMessage = "Invalid role selected.")]
-        public string Role { get; set; } = string.Empty;
+        public UserRole Role { get; set; }
     }
 }

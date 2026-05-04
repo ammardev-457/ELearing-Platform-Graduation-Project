@@ -5,7 +5,7 @@ namespace ELProject.Domain.Models
 {
     public class ApplicationUser : IdentityUser
     {
-        public string? PathOfProfileImageInDb { get; set; }
+        public string Name { get; set; } = string.Empty;
         public string? Bio { get; set; }
         public Gender? Gender { get; set; }
         public DateTime JoinDate { get; set; } = DateTime.UtcNow;

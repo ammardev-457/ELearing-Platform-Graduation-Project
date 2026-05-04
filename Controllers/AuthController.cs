@@ -21,22 +21,23 @@ namespace ELProject.Controllers
         }
 
         [HttpPost("register")] // api/Auth/register
-        /// <summary>
-        /// هنا؟ [FromForm] ليه بنستخدم 🧠 
-        /// : لأن
-        /// JSON مينفعش ييجي في IFormFile
-        /// multipart/form-data يكون request لازم ال
-        /// 
-        public async Task<IActionResult> RegisterAsync([FromForm]RegisterDto UserDto)
+        public async Task<IActionResult> RegisterAsync(RegisterDto UserDto)
         {
             var result = await authRepo.RegisterAsync(UserDto);
 
             if (!result.IsAuthenticated)
-                return BadRequest(result.Message);
+                return Unauthorized(result.Message);
 
             SetRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiration);
 
-            return Ok(result);
+            return Ok(new
+            {
+                token = result.Token,
+                expiresAt = result.ExpiresAt,
+                email = result.Email,
+                name = result.Name,
+                roles = result.Roles
+            });
         }
 
 
@@ -46,42 +47,63 @@ namespace ELProject.Controllers
             var authResult = await authRepo.LoginAsync(userFromRequest);
 
             if (!authResult.IsAuthenticated)
-                return BadRequest(authResult.Message);
+                return Unauthorized(authResult.Message);
 
-            if (!string.IsNullOrEmpty(authResult.RefreshToken))
-                SetRefreshTokenInCookie(authResult.RefreshToken, authResult.RefreshTokenExpiration);
+            SetRefreshTokenInCookie(authResult.RefreshToken!, authResult.RefreshTokenExpiration);
 
-            return Ok(authResult);
+            return Ok(new
+            {
+                token = authResult.Token,
+                expiresAt = authResult.ExpiresAt,
+                email = authResult.Email,
+                name = authResult.Name,
+                roles = authResult.Roles
+            });
         }
 
 
-        [HttpGet("refresh-token")]
+        // When access token expires, the client send request with refresh token that is stored in cookie.
+        [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken()
         {
             var refreshToken = Request.Cookies["refreshToken"];
 
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized("No refresh token found");
+
             var result = await authRepo.RefreshTokenAsync(refreshToken);
 
             if (!result.IsAuthenticated)
-                return BadRequest(result);
+                return Unauthorized(result.Message);
 
             SetRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiration);
 
-            return Ok(result);
+            return Ok(new
+            {
+                token = result.Token,
+                expiresAt = result.ExpiresAt,
+                email = result.Email,
+                name = result.Name,
+                roles = result.Roles
+            });
         }
 
-        [HttpPost("revoke-token")]
-        public async Task<IActionResult> RevokeToken([FromBody] RevokeToken model)
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> LogoutAsync()
         {
-            var token = model.Token ?? Request.Cookies["refreshToken"];
+            var token = Request.Cookies["refreshToken"];
 
             if (string.IsNullOrEmpty(token))
-                return BadRequest("Token is required!");
+                return Unauthorized("No token found");
 
             var result = await authRepo.RevokeTokenAsync(token);
 
             if (!result)
-                return BadRequest("Token is invalid!");
+                return Unauthorized("Invalid or inactive token");
+
+            Response.Cookies.Delete("refreshToken");
 
             return Ok();
         }
@@ -90,11 +112,20 @@ namespace ELProject.Controllers
         [HttpPost("external-login")]
         public async Task<IActionResult> ExternalLoginAsync(ExternalLoginDto model)
         {
-            var user = await authRepo.ExternalLoginAsync(model);
+            var result = await authRepo.ExternalLoginAsync(model);
 
-            var token = await authRepo.GetTokenAsync(user);
+            if (!result.IsAuthenticated)
+                return Unauthorized(result.Message);
 
-            return Ok(new { token });
+            SetRefreshTokenInCookie(result.RefreshToken!, result.RefreshTokenExpiration);
+
+            return Ok(new
+            {
+                token = result.Token,
+                expiresAt = result.ExpiresAt,
+                name = result.Name,
+                roles = result.Roles
+            });
         }
 
 
@@ -105,17 +136,45 @@ namespace ELProject.Controllers
             var result = await authRepo.ChangePasswordAsync(User, dto);
 
             if (result.Message is not null)
-                return BadRequest(result);
+                return Unauthorized(result.Message);
 
             return Ok("Password changed successfully");
         }
 
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgetPasswordDto dto)
+        {
+            var result = await authRepo.ForgotPasswordAsync(dto.Email);
+
+            if (result == null)
+                return BadRequest("User not found");
+
+            return Ok(new
+            {
+                resetToken = result
+            });
+        }
+
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            var result = await authRepo.ResetPasswordAsync(dto);
+
+            if (!result.IsAuthenticated)
+                return BadRequest(result.Message);
+
+            return Ok("Password reset successfully");
+        }
 
         private void SetRefreshTokenInCookie(string refreshToken, DateTime refreshTokenExpiration)
         {
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
                 Expires = refreshTokenExpiration
             };
 
