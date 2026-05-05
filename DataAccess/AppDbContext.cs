@@ -12,10 +12,11 @@ namespace ELProject.DataAccess
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
         // public DbSet<Payment> Payments { get; set; }
+        public DbSet<Option> Options { get; set; }
         public DbSet<Order> Orders{get;set;}
-        public DbSet<Transaction> Transactions{get;set;}
         public DbSet<Question> Questions { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
+        public DbSet<Transaction> Transactions{get;set;}
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Section> Sections { get; set; }
         public DbSet<StudentQuiz> StudentQuizzes { get; set; }

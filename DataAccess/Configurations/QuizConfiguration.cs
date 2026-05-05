@@ -14,6 +14,10 @@ namespace ELProject.DataAccess.Configurations
                 .IsRequired()
                 .HasMaxLength(150);
 
+            builder.Property(q => q.QuizType)
+                .IsRequired()
+                .HasMaxLength(50); // e.g., "MCQ", "TrueFalse"
+
             builder.Property(q => q.TotalMarks)
                 .IsRequired();
 

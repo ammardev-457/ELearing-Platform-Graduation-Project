@@ -1,6 +1,7 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.DataAccess.Repositories.Repos;
 using ELProject.Domain.Models;
+using ELProject.Shared.DTOs.Instructor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -13,22 +14,22 @@ namespace ELProject.Controllers
     [Authorize(Roles = "Instructor")] // Roles اختياري: لو بتستخدم
     public class InstructorController : ControllerBase
     {
-        private readonly IInstructorRepository _repo;
+        private readonly InstructorRepository _repo;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public InstructorController(IInstructorRepository repo, UserManager<ApplicationUser> userManager)
+        public InstructorController(InstructorRepository repo, UserManager<ApplicationUser> userManager)
         {
             _repo = repo;
             _userManager = userManager;
         }
 
-        // GET: api/instructor/dashboard  (dashboard for current logged instructor)
-        [HttpGet("dashboard")]
-        public async Task<IActionResult> GetMyDashboard()
+
+        [HttpGet("statistics")]
+        public async Task<IActionResult> GetMyStatistics()
         {
             var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
-            var dto = await _repo.GetInstructorDashboardAsync(userId);
-            return Ok(dto);
+            var statistics = await _repo.GetInstructorStatisticsAsync(userId);
+            return Ok(statistics);
         }
 
         // GET: api/instructor/courses
@@ -40,22 +41,32 @@ namespace ELProject.Controllers
             return Ok(courses);
         }
 
-        // GET: api/instructor/{id}/dashboard  (public view for instructor)
-        [HttpGet("{instructorId}/dashboard")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetInstructorDashboard(string instructorId)
-        {
-            var dto = await _repo.GetInstructorDashboardAsync(instructorId);
-            return Ok(dto);
-        }
-
         // GET: api/instructor/recent-activity
         [HttpGet("recent-activity")]
-        public async Task<IActionResult> GetRecentActivity(int count = 5)
+        public async Task<IActionResult> GetRecentActivity(int count = 4)
         {
             var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
             var activities = await _repo.GetRecentActivityAsync(userId, count);
             return Ok(activities);
+        }
+
+        // GET: api/instructor/{id}/profile  (public view for instructor)
+        [HttpGet("{instructorId}/profile")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetInstructorProfile(string instructorId)
+        {
+            var dto = await _repo.GetInstructorProfileAsync(instructorId);
+            return Ok(dto);
+        }
+
+        [HttpPut("edit-profile")]
+        public async Task<IActionResult> EditProfile([FromForm] EditInstructorProfileDto dto)
+        {
+            var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
+            var result = await _repo.EditInstructorProfileAsync(userId, dto);
+            if (!result)
+                return Unauthorized("Instructor does not have permission to edit this profile.");
+            return CreatedAtAction(nameof(GetInstructorProfile), new { instructorId = userId }, dto);
         }
 
         // ---- Additional endpoints commonly used in real e-learning apps ----

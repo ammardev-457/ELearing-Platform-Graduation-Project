@@ -6,6 +6,7 @@ namespace ELProject.ExternalServices
     {
         Task<string?> UploadFileAsync(IFormFile file, FileType type);
         Task<(Stream stream, string contentType, string fileName)?> DownloadFileAsync(string fileUrl, FileType type);
+        Task<bool> DeleteFileAsync(string fileUrl, FileType type);
 
     }
 }

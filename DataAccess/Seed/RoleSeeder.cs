@@ -43,13 +43,16 @@ namespace ELProject.DataAccess.Seed
             // 9. Seed Reviews
             await SeedReviewsAsync(context);
 
-            // 10. Seed Orders
+            // 10. Seed Options
+            await SeedOptionsAsync(context);
+
+            // 11. Seed Orders
             //await SeedOrdersAsync(context);
 
-            // 11. Seed Enrollments
+            // 12. Seed Enrollments
             //await SeedEnrollmentsAsync(context);
 
-            // 12. Seed Transactions
+            // 13. Seed Transactions
             //await SeedTransactionsAsync(context);
         }
 
@@ -322,6 +325,7 @@ namespace ELProject.DataAccess.Seed
                             Title = $"{course.Title} - Midterm Quiz",
                             TotalMarks = 100,
                             TimeLimitInMinutes = 60,
+                            QuizType = QuizType.Mcq,
                             CourseId = course.Id
                         },
                         new Quiz
@@ -329,6 +333,7 @@ namespace ELProject.DataAccess.Seed
                             Title = $"{course.Title} - Final Exam",
                             TotalMarks = 100,
                             TimeLimitInMinutes = 120,
+                            QuizType = QuizType.TrueFalse,
                             CourseId = course.Id
                         }
                     });
@@ -353,23 +358,40 @@ namespace ELProject.DataAccess.Seed
                         new Question
                         {
                             QuestionText = "What is the first concept in this course?",
-                            QuestionType = QuestionType.MultipleChoice,
                             CorrectAnswer = "Option A",
-                            QuizId = quiz.Id,
-                            Options = new List<string> { "Option A", "Option B", "Option C", "Option D" }
+                            QuizId = quiz.Id
                         },
                         new Question
                         {
                             QuestionText = "Are You Student?",
-                            QuestionType = QuestionType.TrueFalse,
                             CorrectAnswer = "True",
-                            QuizId = quiz.Id,
-                            Options = new List<string> { "True", "False" }
+                            QuizId = quiz.Id
                         }
                     });
                 }
 
                 await context.Questions.AddRangeAsync(questions);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        private static async Task SeedOptionsAsync(AppDbContext context)
+        {
+            if (!await context.Options.AnyAsync())
+            {
+                var questions = await context.Questions.ToListAsync();
+                var options = new List<Option>();
+                foreach (var question in questions)
+                {
+                    options.AddRange(new[]
+                    {
+                        new Option { Text = "Option A", QuestionId = question.Id },
+                        new Option { Text = "Option B", QuestionId = question.Id },
+                        new Option { Text = "Option C", QuestionId = question.Id },
+                        new Option { Text = "Option D", QuestionId = question.Id }
+                    });
+                }
+                await context.Options.AddRangeAsync(options);
                 await context.SaveChangesAsync();
             }
         }

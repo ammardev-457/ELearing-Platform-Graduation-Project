@@ -78,4 +78,27 @@ public class AzureBlobStorageService : IFileStorageService
             fileName
         );
     }
+
+    public async Task<bool> DeleteFileAsync(string fileUrl, FileType type)
+    {
+        if (string.IsNullOrEmpty(fileUrl))
+            return false;
+
+        var fileName = Path.GetFileName(new Uri(fileUrl).LocalPath);
+
+        var containerName = type switch
+        {
+            FileType.Image => "images",
+            FileType.Pdf => "pdfs",
+            FileType.Video => "videos",
+            _ => "misc"
+        };
+
+        var containerClient = _serviceClient.GetBlobContainerClient(containerName);
+        var blobClient = containerClient.GetBlobClient(fileName);
+
+        var response = await blobClient.DeleteIfExistsAsync();
+
+        return response.Value; // true if deleted, false if not found
+    }
 }

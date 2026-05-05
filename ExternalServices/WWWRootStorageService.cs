@@ -104,4 +104,19 @@ public class WWWRootStorageService : IFileStorageService
         return (stream, contentType, fileName);
     }
 
+    public Task<bool> DeleteFileAsync(string fileUrl, FileType type)
+    {
+        if (string.IsNullOrEmpty(fileUrl) || fileUrl.Contains(".."))
+            return Task.FromResult(false);
+
+        var fullPath = Path.Combine(_environment.WebRootPath, fileUrl);
+
+        if (!File.Exists(fullPath))
+            return Task.FromResult(false);
+
+        File.Delete(fullPath);
+
+        return Task.FromResult(true);
+    }
+
 }
