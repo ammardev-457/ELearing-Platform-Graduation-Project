@@ -14,15 +14,6 @@ namespace ELProject.DataAccess.Configurations
                 .IsRequired()
                 .HasMaxLength(1000);
 
-            builder.Property(q => q.QuestionType)
-                .IsRequired()
-                .HasMaxLength(50); // e.g., "MCQ", "TrueFalse"
-
-            // يفضل تخزين الخيارات كـ JSON
-            builder.Property(q => q.Options)
-                .IsRequired()
-                .HasColumnType("nvarchar(max)");
-
             builder.Property(q => q.CorrectAnswer)
                 .IsRequired()
                 .HasMaxLength(500);

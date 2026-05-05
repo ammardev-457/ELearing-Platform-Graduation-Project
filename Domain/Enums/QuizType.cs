@@ -1,8 +1,8 @@
 ﻿namespace ELProject.Domain.Enums
 {
-    public enum QuestionType
+    public enum QuizType
     {
-        MultipleChoice,
+        Mcq,
         TrueFalse
     }
 }

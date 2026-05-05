@@ -1,6 +1,7 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
+using ELProject.ExternalServices;
 using ELProject.Shared.DTOs.Instructor;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,10 +10,42 @@ namespace ELProject.DataAccess.Repositories.Repos
     public class InstructorRepository : Repository<Course, int>, IInstructorRepository
     {
         private readonly AppDbContext _context;
+        private readonly IFileStorageService fileStorage;
 
-        public InstructorRepository(AppDbContext context) : base(context)
+        public InstructorRepository(AppDbContext context, IFileStorageService fileStorage) : base(context)
         {
             _context = context;
+            this.fileStorage = fileStorage;
+        }
+
+        public async Task<InstructorStatisticsDto> GetInstructorStatisticsAsync(string instructorId)
+        {
+            var coursesQuery = _context.Courses.Where(c => c.UserId == instructorId);
+            var coursesCount = await coursesQuery.CountAsync();
+
+            var totalStudents = await _context.Enrollments
+                .Where(e => e.Course.UserId == instructorId)
+                .Select(e => e.StudentId)
+                .Distinct()
+                .CountAsync();
+
+            var avgRating = await _context.Reviews
+                .Where(r => r.Course.UserId == instructorId)
+                .Select(r => (double?)r.Rating)
+                .AverageAsync() ?? 0;
+
+            var totalRevenue = await _context.Orders
+                .Where(o => o.Course.UserId == instructorId && o.Status == PaymentStatus.Success.ToString())
+                .Select(o => (decimal?)o.Amount)
+                .SumAsync() ?? 0;
+
+            return new InstructorStatisticsDto
+            {
+                CoursesCount = coursesCount,
+                TotalStudents = totalStudents,
+                AverageRating = Math.Round(avgRating, 2),
+                TotalRevenue = totalRevenue
+            };
         }
 
         public async Task<IReadOnlyList<InstructorCourseDto>> GetInstructorCoursesAsync(string instructorId)
@@ -34,44 +67,44 @@ namespace ELProject.DataAccess.Repositories.Repos
             return courses;
         }
 
-        public async Task<InstructorDashboardDto> GetInstructorDashboardAsync(string instructorId)
-        {
-            var coursesQuery = _context.Courses.Where(c => c.UserId == instructorId);
+        //public async Task<InstructorDashboardDto> GetInstructorDashboardAsync(string instructorId)
+        //{
+        //    var coursesQuery = _context.Courses.Where(c => c.UserId == instructorId);
 
-            var coursesCount = await coursesQuery.CountAsync();
+        //    var coursesCount = await coursesQuery.CountAsync();
 
-            var totalStudents = await _context.Enrollments
-                .Where(e => e.Course.UserId == instructorId)
-                .Select(e => e.StudentId)
-                .Distinct()
-                .CountAsync();
+        //    var totalStudents = await _context.Enrollments
+        //        .Where(e => e.Course.UserId == instructorId)
+        //        .Select(e => e.StudentId)
+        //        .Distinct()
+        //        .CountAsync();
 
-            var avgRating = await _context.Reviews
-                .Where(r => r.Course.UserId == instructorId)
-                .Select(r => (double?)r.Rating)
-                .AverageAsync() ?? 0;
+        //    var avgRating = await _context.Reviews
+        //        .Where(r => r.Course.UserId == instructorId)
+        //        .Select(r => (double?)r.Rating)
+        //        .AverageAsync() ?? 0;
 
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Course.UserId == instructorId && o.Status == PaymentStatus.Success.ToString())
-                .Select(o => (decimal?)o.Amount)
-                .SumAsync() ?? 0;
+        //    var totalRevenue = await _context.Orders
+        //        .Where(o => o.Course.UserId == instructorId && o.Status == PaymentStatus.Success.ToString())
+        //        .Select(o => (decimal?)o.Amount)
+        //        .SumAsync() ?? 0;
 
-            var courses = await GetInstructorCoursesAsync(instructorId);
+        //    var courses = await GetInstructorCoursesAsync(instructorId);
 
-            var recent = await GetRecentActivityAsync(instructorId, 6);
+        //    var recent = await GetRecentActivityAsync(instructorId, 6);
 
-            return new InstructorDashboardDto
-            {
-                CoursesCount = coursesCount,
-                TotalStudents = totalStudents,
-                AverageRating = Math.Round(avgRating, 2),
-                TotalRevenue = totalRevenue,
-                Courses = courses,
-                RecentActivities = recent
-            };
-        }
+        //    return new InstructorDashboardDto
+        //    {
+        //        CoursesCount = coursesCount,
+        //        TotalStudents = totalStudents,
+        //        AverageRating = Math.Round(avgRating, 2),
+        //        TotalRevenue = totalRevenue,
+        //        Courses = courses,
+        //        RecentActivities = recent
+        //    };
+        //}
 
-        public async Task<IReadOnlyList<RecentActivityDto>> GetRecentActivityAsync(string instructorId, int count = 5)
+        public async Task<IReadOnlyList<RecentActivityDto>> GetRecentActivityAsync(string instructorId, int count = 4)
         {
             // جمع أحدث الأنشطة من Orders, Enrollments, Reviews المتعلقة بكورسات المدرّس
             var orders = await _context.Orders
@@ -115,6 +148,53 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .ToList();
 
             return all;
+        }
+
+        public async Task<InstructorProfileDto> GetInstructorProfileAsync(string instructorId)
+        {
+            var instructor = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == instructorId)
+                .Select(u => new InstructorProfileDto
+                {
+                    Name = u.Name,
+                    Email = u.Email,
+                    Title = u.Title,
+                    PathOfImage = u.PathOfImage,
+                    AboutMe = u.AboutMe,
+                    JoinDate = u.JoinDate,
+                    Bio = u.Bio,
+                    CoursesCount = u.CreatedCourses.Count(),
+                    AverageRating = u.CreatedCourses.SelectMany(c => c.Reviews).Any() ? u.CreatedCourses.SelectMany(c => c.Reviews).Average(r => r.Rating) : 0
+                })
+                .FirstOrDefaultAsync();
+            return instructor ?? throw new KeyNotFoundException($"Instructor with ID {instructorId} not found.");
+        }
+
+        public async Task<bool> EditInstructorProfileAsync(string instructorId, EditInstructorProfileDto dto)
+        {
+            var instructor = await _context.Users.FindAsync(instructorId);
+            
+            if (instructor == null)
+                return false;
+
+            instructor.Name = dto.Name;
+            instructor.Email = dto.Email;
+            instructor.Title = dto.Title;
+            instructor.Bio = dto.Bio;
+            instructor.AboutMe = dto.AboutMe;
+            if(dto.Image != null)
+            {
+                if(instructor.PathOfImage != null)
+                    await fileStorage.DeleteFileAsync(instructor.PathOfImage, FileType.Image);
+
+                var imagePath = await fileStorage.UploadFileAsync(dto.Image, FileType.Image);
+                instructor.PathOfImage = imagePath;
+            }
+
+            _context.Users.Update(instructor);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

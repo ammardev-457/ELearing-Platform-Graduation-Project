@@ -4,9 +4,12 @@ namespace ELProject.DataAccess.Repositories.Interfaces
 {
     public interface IInstructorRepository
     {
-        Task<InstructorDashboardDto> GetInstructorDashboardAsync(string instructorId);
+        Task<InstructorProfileDto> GetInstructorProfileAsync(string instructorId);
         Task<IReadOnlyList<InstructorCourseDto>> GetInstructorCoursesAsync(string instructorId);
-        Task<IReadOnlyList<RecentActivityDto>> GetRecentActivityAsync(string instructorId, int count = 5);
+        Task<IReadOnlyList<RecentActivityDto>> GetRecentActivityAsync(string instructorId, int count = 4);
+        Task<InstructorStatisticsDto> GetInstructorStatisticsAsync(string instructorId);
+
+
         // Optional: CRUD helpers for courses if you want repo to manage them
         // Task<Course> CreateCourseAsync(Course course);
         // Task UpdateCourseAsync(Course course);
