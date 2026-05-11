@@ -34,10 +34,7 @@ namespace ELProject.Controllers
             string? thumbnailUrl = null;
 
             if (courseDto.Thumbnail != null)
-            {
                 thumbnailUrl = await fileService.UploadFileAsync(courseDto.Thumbnail, FileType.Image);
-                courseDto.Thumbnail = null; // Clear the file from DTO to avoid confusion
-            }
 
             var course = new Course
             {
@@ -52,41 +49,85 @@ namespace ELProject.Controllers
                 LongDescription = courseDto.LongDescription
             };
 
-            await _unitOfWork.Courses.AddAsync(course);
-            await _unitOfWork.CompleteAsync();
+            try
+            {
+                await _unitOfWork.Courses.AddAsync(course);
+                await _unitOfWork.CompleteAsync();
 
-            //CreatedAtAction: Returns 201 Created and adds 'Location' header to the response
-            return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, course);
+                return Ok(new { courseId = course.Id });
+            }
+            catch
+            {
+                if (thumbnailUrl != null)
+                    await fileService.DeleteFileAsync(thumbnailUrl, FileType.Image);
+                
+                return StatusCode(500, "An error occurred while creating the course. Please try again.");   
+            }
         }
 
 
-        // To add multiple roles, use a comma-separated string
-        [Authorize(Roles = "Student,Admin,Instructor")]
-        [HttpGet("{id}/course-metadata")]
-        public async Task<IActionResult> GetCourse(int id)
+        /// <remarks>
+        /// Get all published and active courses on the platform with pagination. Example: GET /api/courses?PagedNumber=1&PagedSize=10
+        /// </remarks>
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> GetAllCourses([FromQuery] PaginationParameters paginationParams)
         {
-            var course = await _unitOfWork.Courses.GetByIdAsync(id);
-            return course == null ? NotFound("Course Not Found") : Ok(course);
+            var result = await _unitOfWork.Courses.GetAsync(null, paginationParams.PagedNumber, paginationParams.PagedSize);
+            return Ok(result);
         }
 
 
-        [HttpGet("{id}/course-data")]
-        public async Task<IActionResult> GetCourseWithData(int id)
+        [Authorize(Roles = "Instructor")]
+        [HttpGet("{courseId}/course-metadata")]
+        public async Task<IActionResult> GetCourseMetaData(int courseId)
         {
-            var course = await _unitOfWork.Courses.GetCourseWithDataAsync(id);
+            var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != course.UserId) return Unauthorized("User Not Authenticated");
+
+            return course == null ? NotFound("Course Not Found") : Ok( new 
+            { 
+                title = course.Title,
+                shortDescription = course.ShortDescription,
+                longDescription = course.LongDescription,
+                thumbnail = course.Thumbnail,
+                createdDate = course.CreatedDate,
+                level = course.Level,
+                price = course.Price,
+                rate = course.Rate,
+                categoryId = course.CategoryId
+            });
+        }
+
+
+        [AllowAnonymous]
+        [HttpGet("{courseId}/course-data")]
+        public async Task<IActionResult> GetPaidCourseWithData(int courseId)
+        {
+            var paidCourse = await _unitOfWork.Courses.GetPaidCourseWithDataAsync(courseId);
+
+            if (paidCourse == null)
+                return NotFound("Course Not Found");
+
+            paidCourse.InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            paidCourse.InstructorName = User.FindFirstValue(ClaimTypes.Name);
+
+            return Ok(paidCourse);
+        }
+
+
+        [Authorize(Roles = "Student")]
+        [HttpGet("{courseId}/enrolled-course")]
+        public async Task<IActionResult> GetEnrolledCourseWithData(int courseId)
+        {
+            var course = await _unitOfWork.Courses.GetEnrolledCourseWithDataAsync(courseId);
 
             if (course == null)
                 return NotFound("Course Not Found");
 
             return Ok(course);
-        }
-
-
-        [HttpGet("courses")]
-        public async Task<IActionResult> GetAllCourses([FromQuery] PaginationParameters paginationParams)
-        {
-            var result = await _unitOfWork.Courses.GetAsync(null, paginationParams.PagedNumber, paginationParams.PagedSize);
-            return Ok(result);
         }
 
 
@@ -153,7 +194,8 @@ namespace ELProject.Controllers
 
             _unitOfWork.Courses.Update(course);
             await _unitOfWork.CompleteAsync();
-            return Ok(course);
+
+            return CreatedAtAction(nameof(GetCourseMetaData), new { id = course.Id }, course);
         }
 
 
@@ -174,7 +216,7 @@ namespace ELProject.Controllers
 
             _unitOfWork.Courses.Remove(course);
             await _unitOfWork.CompleteAsync();
-            return NoContent();
+            return Ok("Course Deleted Successfully");
         }
 
     }

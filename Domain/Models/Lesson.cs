@@ -8,7 +8,6 @@ namespace ELProject.Domain.Models
         
         public string Title { get; set; } = null!;
         public int Order { get; set; } // ترتيب الدرس في السكشن
-        public bool IsFreePreview => Order <= 2;
 
         // 1. تحديد نوع المحتوى
         public FileType Type { get; set; }

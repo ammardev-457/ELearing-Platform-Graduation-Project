@@ -18,8 +18,6 @@ namespace ELProject.DataAccess.Configurations
             builder.Property(l => l.Order)
                 .IsRequired();
 
-            builder.Ignore(l => l.IsFreePreview);
-
             // Enums
             builder.Property(l => l.Type)
                 .HasConversion<string>()
