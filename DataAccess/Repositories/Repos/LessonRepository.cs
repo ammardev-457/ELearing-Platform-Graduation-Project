@@ -18,6 +18,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             return await _context.Lessons
                 .AsNoTracking()
                 .Where(l => l.SectionId == sectionId)
+                .OrderBy(l => l.Order)
                 .ToListAsync();
         }
     }

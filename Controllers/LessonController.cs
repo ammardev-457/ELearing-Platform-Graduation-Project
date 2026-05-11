@@ -3,6 +3,7 @@ using ELProject.DataAccess.Repositories.Repos;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
+using ELProject.Shared.DTOs.Courses;
 using ELProject.Shared.DTOs.Lessons;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -25,10 +26,13 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpPost("create-lesson")]
-        public async Task<IActionResult> CreateLesson([FromForm] CreateNewLessonDto dto)
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateLesson([FromForm] CreateLessonDto dto)
         {
             var url = await fileService.UploadFileAsync(dto.File, dto.Type);
+
+            if (string.IsNullOrEmpty(url))
+                return StatusCode(500, "An error occurred while uploading the file");
 
             Lesson newLesson = new()
             {
@@ -42,10 +46,17 @@ namespace ELProject.Controllers
             if (dto.Type == FileType.Video)
                 newLesson.DurationInSeconds = dto.DurationInSeconds;
 
-            await unitOfWork.Lessons.AddAsync(newLesson);
-            await unitOfWork.CompleteAsync();
-
-            return Ok(new { url });
+            try
+            {
+                await unitOfWork.Lessons.AddAsync(newLesson);
+                await unitOfWork.CompleteAsync();
+                return Ok(new { lessonId = newLesson.Id });
+            }
+            catch
+            {
+                await fileService.DeleteFileAsync(url, dto.Type);
+                return StatusCode(500, "An error occurred while creating the lesson");
+            }
         }
 
 
@@ -69,7 +80,7 @@ namespace ELProject.Controllers
         }
 
 
-        [HttpGet("section/{sectionId}")]
+        [HttpGet("lessons-per-section/{sectionId}")]
         public async Task<IActionResult> GetLessonsPerSection(int sectionId)
         {
             var lessons = await unitOfWork.Lessons.GetLessonsBySectionId(sectionId);
@@ -77,8 +88,9 @@ namespace ELProject.Controllers
             return Ok(lessons);
         }
 
+
         [Authorize(Roles = "Instructor")]
-        [HttpPut("update-lesson")]
+        [HttpPut("update")]
         public async Task<IActionResult> UpdateLesson([FromForm] UpdateLessonDto dto)
         {
             var lesson = await unitOfWork.Lessons.GetByIdAsync(dto.Id);
@@ -111,7 +123,7 @@ namespace ELProject.Controllers
 
 
         [Authorize(Roles = "Instructor")]
-        [HttpDelete("delete-lesson/{id}")]
+        [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteLesson(int id)
         {
             var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
