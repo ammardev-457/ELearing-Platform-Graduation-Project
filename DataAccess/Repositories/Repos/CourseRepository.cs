@@ -21,6 +21,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             var course = await _context.Courses
                 .Include(c => c.Sections.OrderBy(s => s.Order))
                 .ThenInclude(s => s.Lessons.OrderBy(l => l.Order))
+                .Include(c => c.User)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             var result = new PaidCourseResult
@@ -33,6 +34,8 @@ namespace ELProject.DataAccess.Repositories.Repos
                 CreatedDate = course.CreatedDate,
                 Level = course.Level,
                 Price = course.Price,
+                InstructorId = course.UserId,
+                InstructorName = course.User.Name,
                 CategoryId = course.CategoryId,
                 Sections = course.Sections.Select(s => new SectionResult
                 {

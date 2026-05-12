@@ -20,19 +20,14 @@ namespace ELProject.DataAccess.Repositories.Repos
             {
                 CourseId = dto.CourseId,
                 Title = dto.Title,
+                Order = dto.Order
             };
 
-            try
-            {
-                context.Sections.Add(newSection);
-                await context.SaveChangesAsync();
+            context.Sections.Add(newSection);
+            await context.SaveChangesAsync();
 
-                return newSection.Id;
-            }
-            catch
-            {
-                return -1;
-            }
+            return newSection.Id;
+
         }
 
         public async Task<Section?> GetSectionById(int sectionId)
@@ -79,7 +74,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 return false;
 
             section.Title = dto.Title;
-            section.CourseId = dto.CourseId;
+            section.Order = dto.Order;
 
             try
             {

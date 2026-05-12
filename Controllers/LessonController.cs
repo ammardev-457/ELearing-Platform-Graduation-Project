@@ -29,6 +29,9 @@ namespace ELProject.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateLesson([FromForm] CreateLessonDto dto)
         {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
             var url = await fileService.UploadFileAsync(dto.File, dto.Type);
 
             if (string.IsNullOrEmpty(url))
@@ -93,12 +96,12 @@ namespace ELProject.Controllers
         [HttpPut("update")]
         public async Task<IActionResult> UpdateLesson([FromForm] UpdateLessonDto dto)
         {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
             var lesson = await unitOfWork.Lessons.GetByIdAsync(dto.Id);
             if (lesson == null)
                 return NotFound("Lesson Not Found");
-
-            if (lesson.Section.Course.UserId != User.FindFirstValue(ClaimTypes.NameIdentifier))
-                return Forbid("You are not authorized to update this lesson");
 
             if (dto.File != null)
             {
@@ -126,13 +129,13 @@ namespace ELProject.Controllers
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteLesson(int id)
         {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
             var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
 
             if (lesson == null)
                 return NotFound("Lesson Not Found");
-
-            if (lesson.Section.Course.UserId != User.FindFirstValue(ClaimTypes.NameIdentifier))
-                return Forbid("You are not authorized to delete this lesson");
 
             if (!string.IsNullOrEmpty(lesson.FileUrl))
                 await fileService.DeleteFileAsync(lesson.FileUrl, lesson.Type);

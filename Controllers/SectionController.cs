@@ -4,6 +4,7 @@ using ELProject.Shared.DTOs.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ELProject.Controllers
 {
@@ -20,12 +21,12 @@ namespace ELProject.Controllers
 
         [Authorize(Roles = "Instructor")]
         [HttpPost("create")]
-        public async Task<IActionResult> CreateSection([FromForm] CreateSectionDto dto)
+        public async Task<IActionResult> CreateSection(CreateSectionDto dto)
         {
-            var sectionId = await secRepo.CreateSection(dto);
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
-            if (sectionId == -1)
-                return BadRequest("Error creating section");
+            var sectionId = await secRepo.CreateSection(dto);
 
             return Ok(new { sectionId });
         }
@@ -63,6 +64,9 @@ namespace ELProject.Controllers
         [HttpPut("update/{sectionId}")]
         public async Task<IActionResult> UpdateSection(int sectionId, UpdateSectionDto dto)
         {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
             var result = await secRepo.UpdateSection(sectionId, dto);
 
             if (!result)
@@ -76,6 +80,9 @@ namespace ELProject.Controllers
         [HttpDelete("delete/{sectionId}")]
         public async Task<IActionResult> DeleteSection(int sectionId)
         {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
             var result = await secRepo.DeleteSection(sectionId);
 
             if (!result)
