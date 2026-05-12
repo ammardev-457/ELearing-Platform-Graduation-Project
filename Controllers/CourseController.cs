@@ -84,10 +84,13 @@ namespace ELProject.Controllers
         {
             var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
 
+            if(course == null)
+                return NotFound("Course Not Found");
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != course.UserId) return Unauthorized("User Not Authenticated");
 
-            return course == null ? NotFound("Course Not Found") : Ok( new 
+            return Ok( new 
             { 
                 title = course.Title,
                 shortDescription = course.ShortDescription,
@@ -103,16 +106,13 @@ namespace ELProject.Controllers
 
 
         [AllowAnonymous]
-        [HttpGet("{courseId}/course-data")]
+        [HttpGet("{courseId}/paid-course")]
         public async Task<IActionResult> GetPaidCourseWithData(int courseId)
         {
             var paidCourse = await _unitOfWork.Courses.GetPaidCourseWithDataAsync(courseId);
 
             if (paidCourse == null)
                 return NotFound("Course Not Found");
-
-            paidCourse.InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            paidCourse.InstructorName = User.FindFirstValue(ClaimTypes.Name);
 
             return Ok(paidCourse);
         }
