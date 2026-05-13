@@ -51,7 +51,7 @@ namespace ELProject.Controllers
         {
             var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
             if (quiz == null) return NotFound();
-            return quiz;
+            return Ok(quiz);
         }
 
         [Authorize(Roles = "Student")]
