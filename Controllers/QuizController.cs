@@ -20,7 +20,7 @@ namespace ELProject.Controllers
 
         [Authorize(Roles = "Instructor")]
         [HttpPost]
-        public async Task<IActionResult> CreateQuiz([FromBody] QuizDto dto)
+        public async Task<IActionResult> CreateQuiz(QuizDto dto)
         {
             if (dto == null) return BadRequest("Quiz data is required.");
 
@@ -47,7 +47,7 @@ namespace ELProject.Controllers
 
         [Authorize]
         [HttpGet("{id}/quiz-data")]
-        public async Task<ActionResult<Quiz>> GetQuizData(int id)
+        public async Task<IActionResult> GetQuizData(int id)
         {
             var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
             if (quiz == null) return NotFound();

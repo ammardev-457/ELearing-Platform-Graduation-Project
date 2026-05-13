@@ -74,7 +74,12 @@ namespace ELProject.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetLessonById(int id)
         {
-            var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (studentId == null) return Unauthorized("User Not Authenticated");
+
+            var lesson = await unitOfWork.Lessons.GetEnrolledLessonForEnrolledStudent(studentId, id);
+
+            //var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
 
             if (lesson == null)
                 return NotFound("Lesson Not Found");
@@ -97,6 +102,61 @@ namespace ELProject.Controllers
             var lessons = await unitOfWork.Lessons.GetLessonsBySectionId(sectionId);
 
             return Ok(lessons);
+        }
+
+
+        [Authorize(Roles = "Instructor")]
+        [HttpPut("update")]
+        public async Task<IActionResult> UpdateLesson([FromForm] UpdateLessonDto dto)
+        {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
+            var lesson = await unitOfWork.Lessons.GetLessonWithInstructorId(InstructorId, dto.Id);
+
+            if (lesson == null)
+                return NotFound("Lesson Not Found");
+
+            if (dto.File != null)
+            {
+                if (!string.IsNullOrEmpty(lesson.FileUrl))
+                    await fileService.DeleteFileAsync(lesson.FileUrl, lesson.Type);
+
+                var url = await fileService.UploadFileAsync(dto.File, dto.Type);
+                lesson.FileUrl = url;
+            }
+
+            lesson.Title = dto.Title;
+            lesson.Order = dto.Order;
+            lesson.Type = dto.Type;
+
+            if (dto.DurationInSeconds != null)
+                lesson.DurationInSeconds = dto.DurationInSeconds;
+
+            unitOfWork.Lessons.Update(lesson);
+            await unitOfWork.CompleteAsync();
+            return Ok("Lesson Updated Successfully");
+        }
+
+
+        [Authorize(Roles = "Instructor")]
+        [HttpDelete("delete/{id}")]
+        public async Task<IActionResult> DeleteLesson(int id)
+        {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
+            var lesson = await unitOfWork.Lessons.GetLessonWithInstructorId(InstructorId, id);//GetByIdAsync(id);
+
+            if (lesson == null)
+                return NotFound("Lesson Not Found");
+
+            if (!string.IsNullOrEmpty(lesson.FileUrl))
+                await fileService.DeleteFileAsync(lesson.FileUrl, lesson.Type);
+
+            unitOfWork.Lessons.Remove(lesson);
+            await unitOfWork.CompleteAsync();
+            return Ok("Lesson Deleted Successfully");
         }
 
     }

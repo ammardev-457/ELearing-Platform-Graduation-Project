@@ -309,47 +309,6 @@ namespace ELProject.DataAccess.Repositories.Repos
 
             return new AuthResult { IsAuthenticated = true };
         }
-        
-        public async Task<string?> ForgotPasswordAsync(string email)
-        {
-            var user = await userManager.FindByEmailAsync(email);
-
-            if (user == null)
-                return null;
-
-            var token = await userManager.GeneratePasswordResetTokenAsync(user);
-
-            return token;
-        }
-
-        public async Task<AuthResult> ResetPasswordAsync(ResetPasswordDto dto)
-        {
-            var user = await userManager.FindByEmailAsync(dto.Email);
-
-            if (user == null)
-                return new AuthResult { Message = "Invalid request" };
-
-            if (dto.NewPassword != dto.ConfirmPassword)
-                return new AuthResult { Message = "Passwords do not match" };
-
-            var result = await userManager.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
-
-            if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                return new AuthResult { Message = errors };
-            }
-
-            // Revoke all refresh tokens after resetting password
-            user.RefreshTokens?
-                .Where(t => t.IsActive)
-                .ToList()
-                .ForEach(t => t.RevokedAt = DateTime.UtcNow);
-
-            await userManager.UpdateAsync(user);
-
-            return new AuthResult { IsAuthenticated = true };
-        }
 
         public async Task<JwtSecurityToken> GetTokenAsync(ApplicationUser user)
         {

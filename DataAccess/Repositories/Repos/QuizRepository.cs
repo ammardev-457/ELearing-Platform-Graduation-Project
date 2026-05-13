@@ -1,4 +1,4 @@
-﻿using ELProject.DataAccess.Repositories.Interfaces;
+using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
 using ELProject.Shared.Quiz.DTOs;
 using Microsoft.EntityFrameworkCore;
@@ -77,5 +77,62 @@ namespace ELProject.DataAccess.Repositories.Repos
             })
             .ToListAsync();
 
+        public async Task<IEnumerable<Quiz>> GetQuizzesByCourseIdAsync(int courseId)
+        {
+            return await context.Quizzes
+                .Where(q => q.CourseId == courseId)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<string> UpdateQuizAsync(int quizId, string instructorId, QuizDto dto)
+        {
+            var existingQuiz = await context.Quizzes
+                .Include(q => q.Course)
+                .Include(q => q.Questions)
+                    .ThenInclude(q => q.Options)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (existingQuiz == null)
+                return "Quiz not found";
+            
+            if (existingQuiz.Course.UserId != instructorId)
+                return "Unauthorized";
+
+            // Update quiz properties
+            existingQuiz.Title = dto.Title;
+            existingQuiz.Description = dto.Description;
+            existingQuiz.QuizType = dto.QuizType;
+            existingQuiz.TotalMarks = dto.TotalMarks;
+            existingQuiz.TimeLimitInMinutes = dto.TimeLimitInMinutes;
+
+            try
+            {
+                context.Quizzes.Update(existingQuiz);
+                await context.SaveChangesAsync();
+                return "Quiz updated successfully";
+            }
+            catch
+            {
+                return "An error occurred while updating the quiz";
+            }
+        }
+        
+        public async Task<string> DeleteQuizAsync(string instructorId, int quizId)
+        {
+            var quiz = await context.Quizzes
+                .Include(q => q.Course)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (quiz == null)
+                return "Quiz not found";
+            
+            if (quiz.Course.UserId != instructorId)
+                return "Unauthorized";
+
+            context.Quizzes.Remove(quiz);
+            await context.SaveChangesAsync();
+            return "Quiz deleted successfully";
+        }
     }
 }
