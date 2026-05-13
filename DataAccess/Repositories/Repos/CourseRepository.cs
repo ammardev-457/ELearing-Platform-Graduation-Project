@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
 using ELProject.DataAccess.Repositories.Interfaces;
-using ELProject.DataAccess.Results;
 using ELProject.Domain.Models;
 using ELProject.Shared.DTOs;
+using ELProject.Shared.Results;
 using Microsoft.EntityFrameworkCore;
 
 namespace ELProject.DataAccess.Repositories.Repos

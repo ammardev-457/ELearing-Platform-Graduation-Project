@@ -1,6 +1,5 @@
-using ELProject.DataAccess.Results;
 using ELProject.Domain.Models;
-using ELProject.Shared.Quiz.DTOs;
+using ELProject.Shared.DTOs.Quizzes;
 
 namespace ELProject.DataAccess.Repositories.Interfaces
 {
@@ -14,5 +13,8 @@ namespace ELProject.DataAccess.Repositories.Interfaces
         public Task SaveStudentQuizAsync(StudentQuiz studentQuiz);
         public Task<StudentQuizResultDto?> GetStudentQuizResultAsync(string studentId, int quizId);
         public Task<List<AllStudentResultDto>> GetAllStudentResultsAsync(int quizId);
+        public Task<IEnumerable<Quiz>> GetQuizzesByCourseIdAsync(int courseId);
+        public Task<string> UpdateQuizAsync(int quizId, string instructorId, QuizDto dto);
+        public  Task<string> DeleteQuizAsync(string instructorId, int quizId);
     }
 }

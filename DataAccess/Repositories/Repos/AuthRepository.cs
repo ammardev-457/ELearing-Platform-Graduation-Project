@@ -1,9 +1,9 @@
 ﻿using Azure.Core;
-using ELProject.DataAccess.Results;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
 using ELProject.Shared.DTOs.Auth;
+using ELProject.Shared.Results;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

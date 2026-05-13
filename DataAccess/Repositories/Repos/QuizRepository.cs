@@ -1,6 +1,6 @@
 using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
-using ELProject.Shared.Quiz.DTOs;
+using ELProject.Shared.DTOs.Quizzes;
 using Microsoft.EntityFrameworkCore;
 
 namespace ELProject.DataAccess.Repositories.Repos
@@ -28,11 +28,12 @@ namespace ELProject.DataAccess.Repositories.Repos
                     Options = q.Options.Select(opt => new Option { Text = opt }).ToList()
                 }).ToList()
             };
-            context.Quizzes.Add(quiz);
+            await context.Quizzes.AddAsync(quiz);
             return quiz;
         }
 
         public async Task<Quiz?> GetQuizByIdAsync(int quizId) => await context.Quizzes.FindAsync(quizId);
+
         public async Task<Quiz?> GetQuizWithDetailsByIdAsync(int quizId) => await context.Quizzes
             .AsNoTracking()
             .Include(q => q.Questions).ThenInclude(q => q.Options)
@@ -46,7 +47,7 @@ namespace ELProject.DataAccess.Repositories.Repos
         public async Task<bool> HasStudentSubmittedAsync(string studentId, int quizId) => await context.StudentQuizzes
             .AnyAsync(sq => sq.UserId == studentId && sq.QuizId == quizId);
 
-        public async Task SaveStudentQuizAsync(StudentQuiz studentQuiz) => context.StudentQuizzes.Add(studentQuiz);
+        public async Task SaveStudentQuizAsync(StudentQuiz studentQuiz) => await context.StudentQuizzes.AddAsync(studentQuiz);
 
         public async Task<StudentQuizResultDto?> GetStudentQuizResultAsync(string studentId, int quizId) => await context.StudentQuizzes
             .Where(sq => sq.UserId == studentId && sq.QuizId == quizId)
@@ -89,8 +90,6 @@ namespace ELProject.DataAccess.Repositories.Repos
         {
             var existingQuiz = await context.Quizzes
                 .Include(q => q.Course)
-                .Include(q => q.Questions)
-                    .ThenInclude(q => q.Options)
                 .FirstOrDefaultAsync(q => q.Id == quizId);
 
             if (existingQuiz == null)
