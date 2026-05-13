@@ -21,5 +21,10 @@ namespace ELProject.DataAccess.Repositories.Repos
             
             return enrollment;
         }
+
+        public async Task<bool> IsFoundAsync(string studentId, int courseId)
+        {
+            return await _context.Enrollments.AnyAsync(e => e.StudentId == studentId && e.CourseId == courseId);
+        }
     }
 }

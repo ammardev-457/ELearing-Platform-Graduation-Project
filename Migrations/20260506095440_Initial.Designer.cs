@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ELProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260429050550_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260506095440_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -29,6 +29,9 @@ namespace ELProject.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AboutMe")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
@@ -63,6 +66,10 @@ namespace ELProject.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -74,9 +81,8 @@ namespace ELProject.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PathOfProfileImageInDb")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<string>("PathOfImage")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
@@ -85,6 +91,9 @@ namespace ELProject.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("TwoFactorEnabled")
@@ -220,6 +229,29 @@ namespace ELProject.Migrations
                     b.ToTable("Lessons");
                 });
 
+            modelBuilder.Entity("ELProject.Domain.Models.Option", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("Options");
+                });
+
             modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
                 {
                     b.Property<long>("Id")
@@ -290,18 +322,10 @@ namespace ELProject.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.PrimitiveCollection<string>("Options")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("QuestionText")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("QuestionType")
-                        .HasMaxLength(50)
-                        .HasColumnType("int");
 
                     b.Property<int>("QuizId")
                         .HasColumnType("int");
@@ -322,6 +346,13 @@ namespace ELProject.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("QuizType")
+                        .HasMaxLength(50)
                         .HasColumnType("int");
 
                     b.Property<int>("TimeLimitInMinutes")
@@ -723,6 +754,17 @@ namespace ELProject.Migrations
                     b.Navigation("Section");
                 });
 
+            modelBuilder.Entity("ELProject.Domain.Models.Option", b =>
+                {
+                    b.HasOne("ELProject.Domain.Models.Question", "Question")
+                        .WithMany("Options")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
                 {
                     b.HasOne("ELProject.Domain.Models.Course", "Course")
@@ -937,6 +979,11 @@ namespace ELProject.Migrations
                         .IsRequired();
 
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("ELProject.Domain.Models.Question", b =>
+                {
+                    b.Navigation("Options");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>

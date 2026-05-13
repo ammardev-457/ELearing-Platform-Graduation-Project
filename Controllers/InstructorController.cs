@@ -11,7 +11,7 @@ namespace ELProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Instructor")] // Roles اختياري: لو بتستخدم
+    [Authorize(Roles = "Instructor")] 
     public class InstructorController : ControllerBase
     {
         private readonly InstructorRepository _repo;
@@ -23,34 +23,36 @@ namespace ELProject.Controllers
             _userManager = userManager;
         }
 
-
         [HttpGet("statistics")]
         public async Task<IActionResult> GetMyStatistics()
         {
-            var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized("User not authenticated");
+
             var statistics = await _repo.GetInstructorStatisticsAsync(userId);
             return Ok(statistics);
         }
 
-        // GET: api/instructor/courses
         [HttpGet("courses")]
         public async Task<IActionResult> GetMyCourses()
         {
-            var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized("User not authenticated");
+
             var courses = await _repo.GetInstructorCoursesAsync(userId);
             return Ok(courses);
         }
 
-        // GET: api/instructor/recent-activity
         [HttpGet("recent-activity")]
         public async Task<IActionResult> GetRecentActivity(int count = 4)
         {
-            var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized("User not authenticated");
+
             var activities = await _repo.GetRecentActivityAsync(userId, count);
             return Ok(activities);
         }
 
-        // GET: api/instructor/{id}/profile  (public view for instructor)
         [HttpGet("{instructorId}/profile")]
         [AllowAnonymous]
         public async Task<IActionResult> GetInstructorProfile(string instructorId)
@@ -62,17 +64,19 @@ namespace ELProject.Controllers
         [HttpPut("edit-profile")]
         public async Task<IActionResult> EditProfile([FromForm] EditInstructorProfileDto dto)
         {
-            var userId = _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException();
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized("User not authenticated");
+
             var result = await _repo.EditInstructorProfileAsync(userId, dto);
             if (!result)
                 return Unauthorized("Instructor does not have permission to edit this profile.");
             return CreatedAtAction(nameof(GetInstructorProfile), new { instructorId = userId }, dto);
         }
+    }
+}
 
-        // ---- Additional endpoints commonly used in real e-learning apps ----
+// ---- Additional endpoints commonly used in real e-learning apps ----
         // - CRUD for courses (Create/Update/Delete)
         // - Get students of a course
         // - Get course revenue / analytics per course
         // Implement these in the controller calling repository methods as needed.
-    }
-}

@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using ELProject.DataAccess.Repositories.Interfaces;
-using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
@@ -23,18 +22,16 @@ namespace ELProject.Controllers
         private readonly IConfiguration _configuration = configuration;
 
         [HttpPost("create-intent/{courseId}")]
-        public async Task<IActionResult> CreatePaymentIntetion(int courseId)
+        public async Task<IActionResult> CreatePaymentIntent(int courseId)  // تم تصحيح الاسم
         {
             string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized(new { message = "Invalid User Identity" });
 
-
             var student = await _userManager.FindByIdAsync(userId);
             if (student == null) return Unauthorized("User Not Authenticated");
 
-
-            var existingEnrollment = await _unitOfWork.Enrollments.ExistsAsync(userId, courseId);
-            if (existingEnrollment != null)
+            var alreadyEnrolled = await _unitOfWork.Enrollments.IsFoundAsync(userId, courseId);
+            if (alreadyEnrolled)
                 return BadRequest("Already enrolled in this course.");
 
             var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
@@ -50,11 +47,12 @@ namespace ELProject.Controllers
             };
 
             await _unitOfWork.Orders.AddAsync(order);
-            await _unitOfWork.CompleteAsync();
+            await _unitOfWork.CompleteAsync();  
 
             var clientSecret = await _paymobService.CreatePaymentIntentAsync(order, student);
 
-
+            _unitOfWork.Orders.Update(order);
+            await _unitOfWork.CompleteAsync();
 
             return Ok(new { client_secret = clientSecret });
         }
@@ -98,7 +96,6 @@ namespace ELProject.Controllers
                             order.UpdatedAt = DateTime.UtcNow;
                             _unitOfWork.Orders.Update(order);
 
-     
                             await _unitOfWork.Transactions.AddAsync(new Transaction
                             {
                                 OrderId = order.Id,
@@ -108,9 +105,7 @@ namespace ELProject.Controllers
                                 CreatedAt = DateTime.UtcNow
                             });
 
-              
                             var existingEnroll = await _unitOfWork.Enrollments.ExistsAsync(order.StudentId, order.CourseId);
-
                             if (existingEnroll == null)
                             {
                                 await _unitOfWork.Enrollments.AddAsync(new Enrollment
@@ -124,7 +119,6 @@ namespace ELProject.Controllers
                                 });
                             }
 
-                  
                             await _unitOfWork.CompleteAsync();
                             Console.WriteLine($"DONE: Order {orderId} Paid & Student Enrolled.");
                         }
@@ -142,7 +136,7 @@ namespace ELProject.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in Webhook: {ex.Message}");
-                return Ok(); 
+                return Ok();
             }
         }
 
@@ -166,8 +160,6 @@ namespace ELProject.Controllers
             });
         }
 
-
-
         private string CalculateHmac(JsonElement obj, string hmacSecret)
         {
             string GetVal(JsonElement element, string prop)
@@ -184,7 +176,6 @@ namespace ELProject.Controllers
                 };
             }
 
-            // الخطوة 1 و 2: التجميع حسب القائمة الـ 21 بالترتيب الأبجدي
             StringBuilder sb = new StringBuilder();
 
             sb.Append(GetVal(obj, "amount_cents"));
@@ -192,7 +183,7 @@ namespace ELProject.Controllers
             sb.Append(GetVal(obj, "currency"));
             sb.Append(GetVal(obj, "error_occured"));
             sb.Append(GetVal(obj, "has_parent_transaction"));
-            sb.Append(GetVal(obj, "id")); // هذا هو obj.id في الـ POST
+            sb.Append(GetVal(obj, "id"));
             sb.Append(GetVal(obj, "integration_id"));
             sb.Append(GetVal(obj, "is_3d_secure"));
             sb.Append(GetVal(obj, "is_auth"));
@@ -201,9 +192,8 @@ namespace ELProject.Controllers
             sb.Append(GetVal(obj, "is_standalone_payment"));
             sb.Append(GetVal(obj, "is_voided"));
 
-
             if (obj.TryGetProperty("order", out var order))
-                sb.Append(GetVal(order, "id")); // هذا هو order.id
+                sb.Append(GetVal(order, "id"));
 
             sb.Append(GetVal(obj, "owner"));
             sb.Append(GetVal(obj, "pending"));
@@ -218,7 +208,6 @@ namespace ELProject.Controllers
             sb.Append(GetVal(obj, "success"));
 
             string concatenatedString = sb.ToString();
-
             Console.WriteLine("Concatenated String for HMAC: " + concatenatedString);
 
             var keyBytes = Encoding.UTF8.GetBytes(hmacSecret);

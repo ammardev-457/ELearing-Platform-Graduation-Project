@@ -60,8 +60,8 @@ namespace ELProject.Controllers
             {
                 if (thumbnailUrl != null)
                     await fileService.DeleteFileAsync(thumbnailUrl, FileType.Image);
-                
-                return StatusCode(500, "An error occurred while creating the course. Please try again.");   
+
+                return StatusCode(500, "An error occurred while creating the course. Please try again.");
             }
         }
 
@@ -84,14 +84,14 @@ namespace ELProject.Controllers
         {
             var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
 
-            if(course == null)
+            if (course == null)
                 return NotFound("Course Not Found");
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != course.UserId) return Unauthorized("User Not Authenticated");
 
-            return Ok( new 
-            { 
+            return Ok(new
+            {
                 title = course.Title,
                 shortDescription = course.ShortDescription,
                 longDescription = course.LongDescription,
@@ -122,6 +122,14 @@ namespace ELProject.Controllers
         [HttpGet("{courseId}/enrolled-course")]
         public async Task<IActionResult> GetEnrolledCourseWithData(int courseId)
         {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(studentId))
+                return Unauthorized("User not authenticated");
+
+            var isEnrolled = await _unitOfWork.Enrollments.IsFoundAsync(studentId, courseId);
+            if (!isEnrolled)
+                return Forbid("You are not enrolled in this course");
+
             var course = await _unitOfWork.Courses.GetEnrolledCourseWithDataAsync(courseId);
 
             if (course == null)

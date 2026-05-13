@@ -1,3 +1,6 @@
+using ELProject.Domain.Models;
+using ELProject.Shared.DTOs;
+
 namespace ELProject.Domain.Models
 {
     public class StudentQuiz

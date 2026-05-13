@@ -1,10 +1,8 @@
-﻿using ELProject.DataAccess.Repositories.Repos;
+﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
-using ELProject.Shared.DTOs;
+using ELProject.Shared.Quiz.DTOs;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace ELProject.Controllers
@@ -13,12 +11,11 @@ namespace ELProject.Controllers
     [ApiController]
     public class QuizController : ControllerBase
     {
+        private readonly IUnitOfWork _unitOfWork;
 
-        private readonly QuizRepository quizRepo;
-
-        public QuizController(QuizRepository _quizRepo)
+        public QuizController(IUnitOfWork unitOfWork)
         {
-            quizRepo = _quizRepo;
+            _unitOfWork = unitOfWork;
         }
 
         [Authorize(Roles = "Instructor")]
@@ -29,110 +26,129 @@ namespace ELProject.Controllers
 
             try
             {
-                var createdQuiz = await quizRepo.CreateQuizAsync(dto);
-
+                var createdQuiz = await _unitOfWork.Quizzes.CreateQuizAsync(dto);
+                await _unitOfWork.CompleteAsync();
                 return CreatedAtAction(nameof(GetQuiz), new { id = createdQuiz.Id }, createdQuiz);
             }
-            catch (Exception ex)
+            catch
             {
-                // Log the error (with alert: something went boom)
                 return StatusCode(500, "An error occurred while creating the quiz.");
             }
-
         }
 
         [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<Quiz>> GetQuiz(int id)
         {
-            var quiz = await quizRepo.GetQuizByIdAsync(id);
-
-            if (quiz == null)
-                return NotFound();
-
+            var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
+            if (quiz == null) return NotFound();
             return quiz;
         }
-
 
         [Authorize]
         [HttpGet("{id}/quiz-data")]
         public async Task<IActionResult> GetQuizData(int id)
         {
-            var quiz = await quizRepo.GetQuizWithDetailsByIdAsync(id);
+            var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
+            if (quiz == null) return NotFound();
+            return quiz;
+        }
 
+        [Authorize(Roles = "Student")]
+        [HttpPost("{id}/submit")]
+        public async Task<IActionResult> SubmitQuiz(int id, [FromBody] QuizSubmitDto submitDto)
+        {
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(studentId))
+                return Unauthorized("User not authenticated");
+
+            var quiz = await _unitOfWork.Quizzes.GetQuizWithQuestionsOnlyAsync(id);
             if (quiz == null)
-                return NotFound();
+                return NotFound("Quiz not found");
 
-            return Ok(new
+            var alreadySubmitted = await _unitOfWork.Quizzes.HasStudentSubmittedAsync(studentId, id);
+            if (alreadySubmitted)
+                return BadRequest("You have already submitted this quiz");
+
+            int totalScore = 0;
+            int maxPossibleScore = 0;
+            var questionResults = new List<QuestionResultDto>();
+
+            foreach (var question in quiz.Questions)
             {
-                id = quiz.Id,
-                title = quiz.Title,
-                description = quiz.Description,
-                quizType = quiz.QuizType,
-                totalMarks = quiz.TotalMarks,
-                timeLimitInMinutes = quiz.TimeLimitInMinutes,
-                courseId = quiz.CourseId,
-                questions = quiz.Questions.Select(q => new Question
+                maxPossibleScore += question.Points;
+                var userAnswer = submitDto.Answers.FirstOrDefault(a => a.QuestionId == question.Id);
+                if (userAnswer != null && question.CorrectAnswer == userAnswer.SelectedAnswer)
                 {
-                    Id = q.Id,
-                    QuestionText = q.QuestionText,
-                    Explanation = q.Explanation,
-                    Options = q.Options.Select(opt => new Option
+                    totalScore += question.Points;
+                    questionResults.Add(new QuestionResultDto
                     {
-                        Id = opt.Id,
-                        Text = opt.Text
-                    }).ToList()
-                }).ToList()
+                        QuestionId = question.Id,
+                        IsCorrect = true,
+                        PointsEarned = question.Points,
+                        CorrectAnswer = question.CorrectAnswer
+                    });
+                }
+                else
+                {
+                    questionResults.Add(new QuestionResultDto
+                    {
+                        QuestionId = question.Id,
+                        IsCorrect = false,
+                        PointsEarned = 0,
+                        CorrectAnswer = question.CorrectAnswer
+                    });
+                }
+            }
+
+            var studentQuiz = new StudentQuiz
+            {
+                UserId = studentId,
+                QuizId = id,
+                Score = totalScore,
+                SubmitDate = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Quizzes.SaveStudentQuizAsync(studentQuiz);
+            await _unitOfWork.CompleteAsync();
+
+            return Ok(new QuizResultDto
+            {
+                QuizId = id,
+                QuizTitle = quiz.Title,
+                Score = totalScore,
+                MaxPossibleScore = maxPossibleScore,
+                Percentage = (double)totalScore / maxPossibleScore * 100,
+                SubmitDate = studentQuiz.SubmitDate,
+                QuestionResults = questionResults
             });
         }
 
-
-        [HttpGet]
-        public async Task<IActionResult> GetQuizzesByCourseId(int courseId)
+        [Authorize(Roles = "Student")]
+        [HttpGet("{id}/my-result")]
+        public async Task<IActionResult> GetMyQuizResult(int id)
         {
-            var quizzes = await quizRepo.GetQuizzesByCourseIdAsync(courseId);
-            
-            if (quizzes == null || !quizzes.Any())
-                return NotFound();
-            
-            return Ok(quizzes);
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(studentId))
+                return Unauthorized("User not authenticated");
+
+            var result = await _unitOfWork.Quizzes.GetStudentQuizResultAsync(studentId, id);
+            if (result == null)
+                return NotFound("You haven't submitted this quiz yet");
+
+            return Ok(result);
         }
 
-
         [Authorize(Roles = "Instructor")]
-        [HttpPut("{quizId}/update")]
-        public async Task<IActionResult> UpdateQuiz(int quizId, QuizDto dto)
+        [HttpGet("{id}/all-results")]
+        public async Task<IActionResult> GetAllQuizResults(int id)
         {
-            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if(InstructorId == null) return Unauthorized("User Not Authenticated");
+            var quiz = await _unitOfWork.Quizzes.GetQuizByIdAsync(id);
+            if (quiz == null)
+                return NotFound("Quiz not found");
 
-            if (dto == null) return BadRequest("Quiz data is required.");
-
-            var updateResult = await quizRepo.UpdateQuizAsync(quizId, InstructorId, dto);
-
-            if (updateResult == "Quiz not found")
-                return NotFound();
-
-            if (updateResult == "Unauthorized")
-                return Unauthorized();
-
-            if (updateResult == "An error occurred while updating the quiz")
-                return StatusCode(500, updateResult);
-
-            return CreatedAtAction(nameof(GetQuiz), new { id = quizId }, dto);
-        }
-
-
-        [Authorize(Roles = "Instructor")]
-        [HttpDelete("{quizId}/delete")]
-        public async Task<IActionResult> DeleteQuiz(int quizId)
-        {
-            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (InstructorId == null) return Unauthorized("User Not Authenticated");
-
-            await quizRepo.DeleteQuizAsync(InstructorId, quizId);
-
-            return Ok("Quiz Deleted Successfully");
+            var results = await _unitOfWork.Quizzes.GetAllStudentResultsAsync(id);
+            return Ok(results);
         }
     }
 }

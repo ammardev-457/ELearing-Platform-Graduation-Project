@@ -32,6 +32,14 @@ namespace ELProject.Controllers
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
+            var section = await unitOfWork.Sections.GetByIdAsync(dto.SectionId);
+            if (section == null)
+                return NotFound("Section not found");
+
+            var course = await unitOfWork.Courses.GetByIdAsync(section.CourseId);
+            if (course.UserId != InstructorId)
+                return Forbid();
+
             var url = await fileService.UploadFileAsync(dto.File, dto.Type);
 
             if (string.IsNullOrEmpty(url))
