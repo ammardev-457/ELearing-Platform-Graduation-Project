@@ -66,7 +66,12 @@ namespace ELProject.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetLessonById(int id)
         {
-            var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
+            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (studentId == null) return Unauthorized("User Not Authenticated");
+
+            var lesson = await unitOfWork.Lessons.GetEnrolledLessonForEnrolledStudent(studentId, id);
+
+            //var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
 
             if (lesson == null)
                 return NotFound("Lesson Not Found");
@@ -99,7 +104,8 @@ namespace ELProject.Controllers
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
-            var lesson = await unitOfWork.Lessons.GetByIdAsync(dto.Id);
+            var lesson = await unitOfWork.Lessons.GetLessonWithInstructorId(InstructorId, dto.Id);
+
             if (lesson == null)
                 return NotFound("Lesson Not Found");
 
@@ -132,7 +138,7 @@ namespace ELProject.Controllers
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
-            var lesson = await unitOfWork.Lessons.GetByIdAsync(id);
+            var lesson = await unitOfWork.Lessons.GetLessonWithInstructorId(InstructorId, id);//GetByIdAsync(id);
 
             if (lesson == null)
                 return NotFound("Lesson Not Found");

@@ -16,7 +16,13 @@ namespace ELProject.Shared.DTOs
     public class QuestionDto
     {
         public string QuestionText { get; set; } = null!;
-        public List<string> Options { get; set; } = null!;
-        public string CorrectAnswer { get; set; } = null!;
+        public string? Explanation { get; set; } = null!;
+        public List<OptionDto> Options { get; set; } = null!;
+    }
+
+    public class OptionDto
+    {
+        public string Text { get; set; } = null!;
+        public bool IsCorrect { get; set; }
     }
 }

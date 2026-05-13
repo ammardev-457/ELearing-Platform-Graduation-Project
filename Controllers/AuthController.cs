@@ -141,33 +141,6 @@ namespace ELProject.Controllers
             return Ok("Password changed successfully");
         }
 
-
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword(ForgetPasswordDto dto)
-        {
-            var result = await authRepo.ForgotPasswordAsync(dto.Email);
-
-            if (result == null)
-                return BadRequest("User not found");
-
-            return Ok(new
-            {
-                resetToken = result
-            });
-        }
-
-
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
-        {
-            var result = await authRepo.ResetPasswordAsync(dto);
-
-            if (!result.IsAuthenticated)
-                return BadRequest(result.Message);
-
-            return Ok("Password reset successfully");
-        }
-
         private void SetRefreshTokenInCookie(string refreshToken, DateTime refreshTokenExpiration)
         {
             var cookieOptions = new CookieOptions

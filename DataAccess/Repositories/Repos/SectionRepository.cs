@@ -66,45 +66,5 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .FirstOrDefaultAsync(s => s.Id == sectionId);
         }
 
-        public async Task<bool> UpdateSection(int sectionId, UpdateSectionDto dto)
-        {
-            var section = await context.Sections.FindAsync(sectionId);
-
-            if (section == null)
-                return false;
-
-            section.Title = dto.Title;
-            section.Order = dto.Order;
-
-            try
-            {
-                context.Sections.Update(section);
-                await context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> DeleteSection(int sectionId)
-        {
-            var section = await context.Sections.FindAsync(sectionId);
-
-            if (section == null)
-                return false;
-
-            try
-            {
-                context.Sections.Remove(section);
-                await context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
     }
 }

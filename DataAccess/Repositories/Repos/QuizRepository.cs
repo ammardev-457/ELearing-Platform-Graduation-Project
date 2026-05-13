@@ -1,4 +1,5 @@
-﻿using ELProject.Domain.Models;
+﻿using ELProject.DataAccess.Results;
+using ELProject.Domain.Models;
 using ELProject.Shared.DTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,11 +28,10 @@ namespace ELProject.DataAccess.Repositories.Repos
                 Questions = dto.Questions.Select(q => new Question
                 {
                     QuestionText = q.QuestionText,
-                    CorrectAnswer = q.CorrectAnswer,
-                    // Map the strings from DTO to Option entities
+                    Explanation = q.Explanation,
                     Options = q.Options.Select(opt => new Option
                     {
-                        Text = opt
+                        Text = opt.Text,
                     }).ToList()
                 }).ToList()
             };
@@ -56,5 +56,62 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .FirstOrDefaultAsync(q => q.Id == quizId);
         }
 
+        public async Task<IEnumerable<Quiz>> GetQuizzesByCourseIdAsync(int courseId)
+        {
+            return await context.Quizzes
+                .Where(q => q.CourseId == courseId)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<string> UpdateQuizAsync(int quizId, string instructorId, QuizDto dto)
+        {
+            var existingQuiz = await context.Quizzes
+                .Include(q => q.Course)
+                .Include(q => q.Questions)
+                    .ThenInclude(q => q.Options)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (existingQuiz == null)
+                return "Quiz not found";
+            
+            if (existingQuiz.Course.UserId != instructorId)
+                return "Unauthorized";
+
+            // Update quiz properties
+            existingQuiz.Title = dto.Title;
+            existingQuiz.Description = dto.Description;
+            existingQuiz.QuizType = dto.QuizType;
+            existingQuiz.TotalMarks = dto.TotalMarks;
+            existingQuiz.TimeLimitInMinutes = dto.TimeLimitInMinutes;
+
+            try
+            {
+                context.Quizzes.Update(existingQuiz);
+                await context.SaveChangesAsync();
+                return "Quiz updated successfully";
+            }
+            catch
+            {
+                return "An error occurred while updating the quiz";
+            }
+        }
+        
+        public async Task<string> DeleteQuizAsync(string instructorId, int quizId)
+        {
+            var quiz = await context.Quizzes
+                .Include(q => q.Course)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (quiz == null)
+                return "Quiz not found";
+            
+            if (quiz.Course.UserId != instructorId)
+                return "Unauthorized";
+
+            context.Quizzes.Remove(quiz);
+            await context.SaveChangesAsync();
+            return "Quiz deleted successfully";
+        }
     }
 }
