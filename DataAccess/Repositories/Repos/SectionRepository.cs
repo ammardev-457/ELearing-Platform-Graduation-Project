@@ -1,7 +1,7 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
-using ELProject.Shared.DTOs;
 using ELProject.Shared.DTOs.Courses;
+using ELProject.Shared.DTOs.Sections;
 using Microsoft.EntityFrameworkCore;
 
 namespace ELProject.DataAccess.Repositories.Repos

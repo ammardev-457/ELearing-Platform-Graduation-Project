@@ -1,6 +1,6 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
-using ELProject.Shared.Quiz.DTOs;
+using ELProject.Shared.DTOs.Quizzes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -19,7 +19,7 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpPost]
+        [HttpPost("create")]
         public async Task<IActionResult> CreateQuiz(QuizDto dto)
         {
             if (dto == null) return BadRequest("Quiz data is required.");
@@ -37,7 +37,7 @@ namespace ELProject.Controllers
         }
 
         [Authorize]
-        [HttpGet("{id}")]
+        [HttpGet("{id}/metadata")]
         public async Task<ActionResult<Quiz>> GetQuiz(int id)
         {
             var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
@@ -149,6 +149,59 @@ namespace ELProject.Controllers
 
             var results = await _unitOfWork.Quizzes.GetAllStudentResultsAsync(id);
             return Ok(results);
+        }
+
+
+        [HttpGet("course/{courseId}/quizzes")]
+        public async Task<IActionResult> GetQuizzesByCourseId(int courseId)
+        {
+            var quizzes = await _unitOfWork.Quizzes.GetQuizzesByCourseIdAsync(courseId);
+            return Ok(quizzes);
+        }
+
+        [Authorize(Roles = "Instructor")]
+        [HttpPut("{quizId}/update")]
+        public async Task<IActionResult> UpdateQuiz(int quizId, QuizDto dto)
+        {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
+            if (dto == null) return BadRequest("Quiz data is required.");
+
+            var updateResult = await _unitOfWork.Quizzes.UpdateQuizAsync(quizId, InstructorId, dto);
+
+            if (updateResult == "Quiz not found")
+                return NotFound();
+
+            if (updateResult == "Unauthorized")
+                return Unauthorized();
+
+            if (updateResult == "An error occurred while updating the quiz")
+                return StatusCode(500, updateResult);
+
+            return CreatedAtAction(nameof(GetQuiz), new { id = quizId }, dto);
+        }
+
+
+        [Authorize(Roles = "Instructor")]
+        [HttpDelete("{quizId}/delete")]
+        public async Task<IActionResult> DeleteQuiz(int quizId)
+        {
+            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (InstructorId == null) return Unauthorized("User Not Authenticated");
+
+            var deleteResult = await _unitOfWork.Quizzes.DeleteQuizAsync(InstructorId, quizId);
+
+            if (deleteResult == "Quiz not found")
+                return NotFound();
+
+            if (deleteResult == "Unauthorized")
+                return Unauthorized();
+
+            if (deleteResult == "An error occurred while deleting the quiz")
+                return StatusCode(500, deleteResult);
+
+            return Ok("Quiz Deleted Successfully");
         }
     }
 }

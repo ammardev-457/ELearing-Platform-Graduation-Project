@@ -1,4 +1,4 @@
-namespace ELProject.Shared.Quiz.DTOs
+namespace ELProject.Shared.DTOs.Quizzes
 {
     public class QuizSubmitDto
     {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ELProject.DataAccess.Results
+namespace ELProject.Shared.Results
 {
     public class AuthResult
     {

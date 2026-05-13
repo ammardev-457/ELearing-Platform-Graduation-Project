@@ -1,7 +1,7 @@
 ﻿using ELProject.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace ELProject.DataAccess.Results
+namespace ELProject.Shared.Results
 {
     public class PaidCourseResult
     {

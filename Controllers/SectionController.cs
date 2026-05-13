@@ -1,6 +1,6 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
-using ELProject.Shared.DTOs;
 using ELProject.Shared.DTOs.Courses;
+using ELProject.Shared.DTOs.Sections;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
