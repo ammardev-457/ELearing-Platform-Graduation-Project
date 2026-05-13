@@ -59,36 +59,5 @@ namespace ELProject.Controllers
             return Ok(section);
         }
 
-
-        [Authorize(Roles = "Instructor")]
-        [HttpPut("update/{sectionId}")]
-        public async Task<IActionResult> UpdateSection(int sectionId, UpdateSectionDto dto)
-        {
-            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (InstructorId == null) return Unauthorized("User Not Authenticated");
-
-            var result = await secRepo.UpdateSection(sectionId, dto);
-
-            if (!result)
-                return NotFound("Section not found or update failed");
-
-            return Ok("Section updated successfully");
-        }
-
-
-        [Authorize(Roles = "Instructor")]
-        [HttpDelete("delete/{sectionId}")]
-        public async Task<IActionResult> DeleteSection(int sectionId)
-        {
-            var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (InstructorId == null) return Unauthorized("User Not Authenticated");
-
-            var result = await secRepo.DeleteSection(sectionId);
-
-            if (!result)
-                return NotFound("Section not found or delete failed");
-
-            return Ok("Section deleted successfully");
-        }
     }
 }

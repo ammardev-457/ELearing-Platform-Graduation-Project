@@ -14,10 +14,6 @@ namespace ELProject.DataAccess.Configurations
                 .IsRequired()
                 .HasMaxLength(1000);
 
-            builder.Property(q => q.CorrectAnswer)
-                .IsRequired()
-                .HasMaxLength(500);
-
             // Relationships
             builder.HasOne(q => q.Quiz)
                 .WithMany(qz => qz.Questions)
