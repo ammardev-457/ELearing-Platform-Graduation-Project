@@ -316,8 +316,7 @@ namespace ELProject.Migrations
 
                     b.Property<string>("CorrectAnswer")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Points")
                         .HasColumnType("int");

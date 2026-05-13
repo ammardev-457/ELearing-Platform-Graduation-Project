@@ -358,11 +358,13 @@ namespace ELProject.DataAccess.Seed
                         new Question
                         {
                             QuestionText = "What is the first concept in this course?",
+                            Points = 1,
                             QuizId = quiz.Id
                         },
                         new Question
                         {
                             QuestionText = "Are You Student?",
+                            Points = 1,
                             QuizId = quiz.Id
                         }
                     });
