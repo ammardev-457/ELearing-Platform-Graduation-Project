@@ -127,6 +127,7 @@ namespace ELProject.Controllers
                 return Unauthorized("User not authenticated");
 
             var isEnrolled = await _unitOfWork.Enrollments.IsFoundAsync(studentId, courseId);
+
             if (!isEnrolled)
                 return Forbid("You are not enrolled in this course");
 
