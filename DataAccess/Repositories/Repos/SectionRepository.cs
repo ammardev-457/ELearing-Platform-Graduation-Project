@@ -19,13 +19,15 @@ namespace ELProject.DataAccess.Repositories.Repos
                 Title = dto.Title,
                 Order = dto.Order
             };
-            context.Sections.Add(newSection);
+            await context.Sections.AddAsync(newSection);
             return newSection.Id; 
         }
 
         public async Task<Section?> GetSectionById(int sectionId) => await context.Sections.FindAsync(sectionId);
 
-        public async Task<IEnumerable<Section>> GetSectionsWithLessonsByCourseId(int courseId) => await context.Sections
+        public async Task<IEnumerable<Section>> GetSectionsWithLessonsByCourseId(int courseId)
+        {
+            return await context.Sections
             .Where(s => s.CourseId == courseId)
             .Include(s => s.Lessons)
             .Select(s => new Section
@@ -45,6 +47,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             })
             .OrderBy(s => s.Order)
             .ToListAsync();
+        }
 
         public async Task<Section?> GetSectionwithCourseById(int sectionId) => await context.Sections
             .Include(s => s.Course)
