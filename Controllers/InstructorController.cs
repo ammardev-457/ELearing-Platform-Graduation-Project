@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ELProject.Controllers
 {
@@ -15,41 +16,39 @@ namespace ELProject.Controllers
     public class InstructorController : ControllerBase
     {
         private readonly InstructorRepository _repo;
-        private readonly UserManager<ApplicationUser> _userManager;
 
-        public InstructorController(InstructorRepository repo, UserManager<ApplicationUser> userManager)
+        public InstructorController(InstructorRepository repo)
         {
             _repo = repo;
-            _userManager = userManager;
         }
 
         [HttpGet("statistics")]
         public async Task<IActionResult> GetMyStatistics()
         {
-            var userId = _userManager.GetUserId(User);
-            if (userId == null) return Unauthorized("User not authenticated");
+            var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (instructorId == null) return Unauthorized("User not authenticated");
 
-            var statistics = await _repo.GetInstructorStatisticsAsync(userId);
+            var statistics = await _repo.GetInstructorStatisticsAsync(instructorId);
             return Ok(statistics);
         }
 
         [HttpGet("courses")]
         public async Task<IActionResult> GetMyCourses()
         {
-            var userId = _userManager.GetUserId(User);
-            if (userId == null) return Unauthorized("User not authenticated");
+            var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (instructorId == null) return Unauthorized("User not authenticated");
 
-            var courses = await _repo.GetInstructorCoursesAsync(userId);
+            var courses = await _repo.GetInstructorCoursesAsync(instructorId);
             return Ok(courses);
         }
 
         [HttpGet("recent-activity")]
         public async Task<IActionResult> GetRecentActivity(int count = 4)
         {
-            var userId = _userManager.GetUserId(User);
-            if (userId == null) return Unauthorized("User not authenticated");
+            var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (instructorId == null) return Unauthorized("User not authenticated");
 
-            var activities = await _repo.GetRecentActivityAsync(userId, count);
+            var activities = await _repo.GetRecentActivityAsync(instructorId, count);
             return Ok(activities);
         }
 
@@ -64,13 +63,13 @@ namespace ELProject.Controllers
         [HttpPut("edit-profile")]
         public async Task<IActionResult> EditProfile([FromForm] EditInstructorProfileDto dto)
         {
-            var userId = _userManager.GetUserId(User);
-            if (userId == null) return Unauthorized("User not authenticated");
+            var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (instructorId == null) return Unauthorized("User not authenticated");
 
-            var result = await _repo.EditInstructorProfileAsync(userId, dto);
+            var result = await _repo.EditInstructorProfileAsync(instructorId, dto);
             if (!result)
                 return Unauthorized("Instructor does not have permission to edit this profile.");
-            return CreatedAtAction(nameof(GetInstructorProfile), new { instructorId = userId }, dto);
+            return CreatedAtAction(nameof(GetInstructorProfile), new { instructorId }, dto);
         }
     }
 }
