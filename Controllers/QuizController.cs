@@ -1,6 +1,7 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
 using ELProject.Shared.DTOs.Quizzes;
+using ELProject.Shared.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -52,6 +53,28 @@ namespace ELProject.Controllers
             var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
             if (quiz == null) return NotFound();
             return Ok(quiz);
+        }
+
+        [Authorize(Roles = "Instructor")]
+        [HttpPut("course/{courseId}/quiz/{quizId}/update-quiz-data")]
+        public async Task<IActionResult> UpdateQuizData(int courseId, int quizId, [FromBody] UpdateQuizDto dto)
+        {
+            var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (instructorId == null) return Unauthorized("User not authenticated");
+
+            var IsInstructorOwnedQuiz = await _unitOfWork.Quizzes.IsInstructorCreatedQuiz(instructorId, quizId);
+            if (!IsInstructorOwnedQuiz) return Forbid("You are not authorized to update this quiz");
+
+            try
+            {
+                await _unitOfWork.Quizzes.UpdateQuizData(quizId, dto);
+                await _unitOfWork.CompleteAsync();
+                return CreatedAtAction(nameof(GetQuizData), new { id = quizId }, null);
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while updating the quiz data.");
+            }
         }
 
         [Authorize(Roles = "Student")]
@@ -160,7 +183,7 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpPut("{quizId}/update")]
+        [HttpPut("{quizId}/update-quiz-metadata")]
         public async Task<IActionResult> UpdateQuiz(int quizId, QuizDto dto)
         {
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);

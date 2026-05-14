@@ -24,11 +24,17 @@ namespace ELProject.DataAccess.Repositories.Repos
                 {
                     QuestionText = q.QuestionText,
                     CorrectAnswer = q.CorrectAnswer,
+                    Explanation = q.Explanation,
                     Points = q.Points,
-                    Options = q.Options.Select(opt => new Option { Text = opt }).ToList()
+                    Options = q.Options.Select(o => new Option
+                    {
+                        Text = o.Text
+                    }).ToList()
                 }).ToList()
             };
             await context.Quizzes.AddAsync(quiz);
+            context.Questions.AddRange(quiz.Questions);
+            context.Options.AddRange(quiz.Questions.SelectMany(q => q.Options));
             return quiz;
         }
 
@@ -38,6 +44,50 @@ namespace ELProject.DataAccess.Repositories.Repos
             .AsNoTracking()
             .Include(q => q.Questions).ThenInclude(q => q.Options)
             .FirstOrDefaultAsync(q => q.Id == quizId);
+
+        public async Task<bool> IsInstructorCreatedQuiz(string instructorId, int quizId)
+        {
+            var quiz = await context.Quizzes
+                .Include(q => q.Course)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            if (quiz == null)
+                return false;
+
+            return quiz.Course.UserId == instructorId;
+        }
+
+        public async Task<int> UpdateQuizData(int quizId, UpdateQuizDto dto)
+        {
+            var quiz = await context.Quizzes
+                .Include(q => q.Questions)
+                .ThenInclude(q => q.Options)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+
+            // Update quiz properties
+            quiz.Title = dto.Title;
+            quiz.Description = dto.Description;
+            quiz.QuizType = dto.QuizType;
+            quiz.TotalMarks = dto.TotalMarks;
+            quiz.TimeLimitInMinutes = dto.TimeLimitInMinutes;
+            quiz.Questions = dto.Questions.Select(q => new Question
+            {
+                QuestionText = q.QuestionText,
+                CorrectAnswer = q.CorrectAnswer,
+                Explanation = q.Explanation,
+                Points = q.Points,
+                Options = q.Options.Select(o => new Option
+                {
+                    Text = o.Text
+                }).ToList()
+            }).ToList();
+
+            // Handle questions and options updates here as needed
+            context.Quizzes.Update(quiz);
+            context.Questions.UpdateRange(quiz.Questions);
+            context.Options.UpdateRange(quiz.Questions.SelectMany(q => q.Options));
+            return quiz.Id;
+        }
 
         public async Task<Quiz?> GetQuizWithQuestionsOnlyAsync(int quizId) => await context.Quizzes
             .AsNoTracking()
