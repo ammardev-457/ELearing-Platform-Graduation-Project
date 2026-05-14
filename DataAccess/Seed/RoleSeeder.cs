@@ -101,6 +101,8 @@ namespace ELProject.DataAccess.Seed
                         EmailConfirmed = true,
                         Bio = "Expert in Web Development",
                         Gender = Gender.Male,
+                        Title = "Senior Software Engineer",
+                        AboutMe = "Passionate about teaching and sharing knowledge in web development.",
                         JoinDate = DateTime.UtcNow.AddDays(-365)
                     },
                     new()
@@ -110,6 +112,8 @@ namespace ELProject.DataAccess.Seed
                         EmailConfirmed = true,
                         Bio = "UI/UX Design Specialist",
                         Gender = Gender.Female,
+                        Title = "Lead Designer",
+                        AboutMe = "Dedicated to helping students create stunning and user-friendly designs.",
                         JoinDate = DateTime.UtcNow.AddDays(-180)
                     },
                     new()
@@ -119,6 +123,8 @@ namespace ELProject.DataAccess.Seed
                         EmailConfirmed = true,
                         Bio = "AI and Machine Learning Expert",
                         Gender = Gender.Male,
+                        Title = "Data Scientist",
+                        AboutMe = "Excited to guide students through the fascinating world of AI and machine learning.",
                         JoinDate = DateTime.UtcNow.AddDays(-120)
                     }
                 };
@@ -134,6 +140,7 @@ namespace ELProject.DataAccess.Seed
                 {
                     new()
                     {
+                        Name = "student1",
                         UserName = "student1",
                         Email = "student1@email.com",
                         EmailConfirmed = true,
@@ -143,6 +150,7 @@ namespace ELProject.DataAccess.Seed
                     },
                     new()
                     {
+                        Name = "student2",
                         UserName = "student2",
                         Email = "student2@email.com",
                         EmailConfirmed = true,
@@ -152,6 +160,7 @@ namespace ELProject.DataAccess.Seed
                     },
                     new()
                     {
+                        Name = "student3",
                         UserName = "student3",
                         Email = "student3@email.com",
                         EmailConfirmed = true,
@@ -359,12 +368,16 @@ namespace ELProject.DataAccess.Seed
                         {
                             QuestionText = "What is the first concept in this course?",
                             Points = 1,
+                            Explanation = "The first concept is the introduction to the course.",
+                            CorrectAnswer = "Option A",
                             QuizId = quiz.Id
                         },
                         new Question
                         {
                             QuestionText = "Are You Student?",
                             Points = 1,
+                            Explanation = "This question checks if the user is a student.",
+                            CorrectAnswer = "Option B",
                             QuizId = quiz.Id
                         }
                     });
