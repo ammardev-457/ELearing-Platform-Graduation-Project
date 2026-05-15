@@ -20,7 +20,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .Select(e => new StudentCoursesDto
                 {
                     Title = e.Course.Title,
-                    Thumbnail = string.Empty,
+                    Thumbnail = e.Course.Thumbnail ?? string.Empty,
                     Category = e.Course.Category.Name,
 
                     Rate = e.Course.Reviews.Any()
@@ -41,16 +41,15 @@ namespace ELProject.DataAccess.Repositories.Repos
 
         public async Task<StudentDashboardDto?> GetStudentDashboardAsync(string studentId)
         {
-
             var enrollments = await _context.Enrollments
                 .AsNoTracking()
                 .Where(e => e.StudentId == studentId)
                 .Select(e => new StudentDashboardCourse
                 {
                     CourseName = e.Course.Title,
-                    PictureUrl = null,
-                    InstructorName = e.Course.User.UserName ?? "UnKnow",
-                    Progress = (int)e.Progress
+                    PictureUrl = e.Course.Thumbnail,
+                    InstructorName = e.Course.User.Name,
+                    Progress = e.Progress
                 })
                 .ToListAsync();
 
@@ -73,9 +72,12 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .Where(u => u.Id == studentId)
                 .Select(u => new StudentProfileDto
                 {
+                    Name = u.Name,
                     Email = u.Email!,
                     Username = u.UserName!,
                     Bio = u.Bio,
+                    ProfilePicture = u.PathOfImage,
+                    JoinDate = u.JoinDate,
                     CoursesCount = u.Enrollments.Count
                 })
                 .FirstOrDefaultAsync();

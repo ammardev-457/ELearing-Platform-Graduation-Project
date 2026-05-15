@@ -46,6 +46,8 @@ namespace ELProject.DataAccess.Seed
             // 10. Seed Options
             await SeedOptionsAsync(context);
 
+            await SeedEnrollAsync(context);
+
             // 11. Seed Orders
             //await SeedOrdersAsync(context);
 
@@ -54,6 +56,66 @@ namespace ELProject.DataAccess.Seed
 
             // 13. Seed Transactions
             //await SeedTransactionsAsync(context);
+        }
+
+        private static async Task SeedEnrollAsync(AppDbContext context)
+        {
+            // 1. تحديد بيانات الطالب والكورس (يفضل جلبهم من الداتا بيز لضمان وجودهم)
+            var student = await context.ApplicationUsers.FirstOrDefaultAsync(u => u.UserName == "student1");
+            var course = await context.Courses.FirstOrDefaultAsync(c => c.Id == 1);
+
+            if (student == null || course == null) return;
+
+            // التحقق من عدم وجود تسجيل مسبق لتجنب تكرار البيانات عند كل تشغيل للبرنامج
+            var isAlreadyEnrolled = await context.Enrollments
+                .AnyAsync(e => e.CourseId == course.Id && e.StudentId == student.Id);
+
+            if (!isAlreadyEnrolled)
+            {
+                // 2. إنشاء الطلب (Order)
+                // الحالة Success لتخطي نظام الدفع
+                var order = new Order
+                {
+                    StudentId = student.Id,
+                    CourseId = course.Id,
+                    Amount = (long)(course.Price * 100), // تحويل السعر لـ long (مثلاً بالقرش)
+                    Status = PaymentStatus.Success.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await context.Orders.AddAsync(order);
+                await context.SaveChangesAsync(); // ضروري للحصول على order.Id
+
+                // 3. إنشاء المعاملة (Transaction)
+                var transaction = new Transaction
+                {
+                    OrderId = order.Id,
+                    TransactionId = "MANUAL_TXN_" + Guid.NewGuid().ToString("N").Substring(0, 10),
+                    Amount = order.Amount,
+                    Status = PaymentStatus.Success.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await context.Transactions.AddAsync(transaction);
+
+                // 4. إنشاء التسجيل (Enrollment)
+                var enrollment = new Enrollment
+                {
+                    StudentId = student.Id,
+                    CourseId = course.Id,
+                    OrderId = order.Id, // الربط الإجباري بالطلب
+                    EnrollDate = DateTime.UtcNow,
+                    Progress = 0,
+                    IsCompleted = false
+                };
+
+                await context.Enrollments.AddAsync(enrollment);
+
+                // حفظ المعاملة والتسجيل معاً
+                await context.SaveChangesAsync();
+            }
         }
 
         private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
@@ -134,6 +196,7 @@ namespace ELProject.DataAccess.Seed
                 {
                     new()
                     {
+                        Name = "Ahmed Mohamed",
                         UserName = "student1",
                         Email = "student1@email.com",
                         EmailConfirmed = true,
@@ -143,6 +206,7 @@ namespace ELProject.DataAccess.Seed
                     },
                     new()
                     {
+                        Name = "Sara Ali",
                         UserName = "student2",
                         Email = "student2@email.com",
                         EmailConfirmed = true,
@@ -152,6 +216,7 @@ namespace ELProject.DataAccess.Seed
                     },
                     new()
                     {
+                        Name = "Omar Hassan",
                         UserName = "student3",
                         Email = "student3@email.com",
                         EmailConfirmed = true,
@@ -161,6 +226,7 @@ namespace ELProject.DataAccess.Seed
                     },
                     new()
                     {
+                        Name = "Nour Khalid",
                         UserName = "student4",
                         Email = "student4@email.com",
                         EmailConfirmed = true,
@@ -173,7 +239,7 @@ namespace ELProject.DataAccess.Seed
                 foreach (var student in students)
                 {
                     await userManager.CreateAsync(student, "Password@123");
-                    await userManager.AddToRoleAsync(student, UserRole.Student.ToString());
+                    await userManager.AddToRoleAsync(student, "Student");
                 }
             }
         }

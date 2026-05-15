@@ -11,7 +11,6 @@ namespace ELProject.DataAccess
         public DbSet<Course> Courses { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<Lesson> Lessons { get; set; }
-        // public DbSet<Payment> Payments { get; set; }
         public DbSet<Option> Options { get; set; }
         public DbSet<Order> Orders{get;set;}
         public DbSet<Question> Questions { get; set; }
@@ -21,18 +20,13 @@ namespace ELProject.DataAccess
         public DbSet<Section> Sections { get; set; }
         public DbSet<StudentQuiz> StudentQuizzes { get; set; }
 
-
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         { }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         }
-
-
-
     }
 }
