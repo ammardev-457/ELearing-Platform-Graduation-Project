@@ -26,13 +26,13 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateLesson([FromForm] CreateLessonDto dto)
+        [HttpPost("section/{sectionId}/create")]
+        public async Task<IActionResult> CreateLesson(int sectionId, [FromForm] CreateLessonDto dto)
         {
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
-            var section = await unitOfWork.Sections.GetByIdAsync(dto.SectionId);
+            var section = await unitOfWork.Sections.GetByIdAsync(sectionId);
             if (section == null)
                 return NotFound("Section not found");
 
@@ -47,7 +47,7 @@ namespace ELProject.Controllers
 
             Lesson newLesson = new()
             {
-                SectionId = dto.SectionId,
+                SectionId = sectionId,
                 Title = dto.Title,
                 Type = dto.Type,
                 Order = dto.Order,

@@ -19,7 +19,7 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpPost("create")]
+        [HttpPost("course/{courseId}/create")]
         public async Task<IActionResult> CreateSection(CreateSectionDto dto)
         {
             var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
