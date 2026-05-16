@@ -141,7 +141,7 @@ namespace ELProject.Controllers
                 QuizTitle = quiz.Title,
                 Score = totalScore,
                 MaxPossibleScore = maxPossibleScore,
-                Percentage = (double)totalScore / maxPossibleScore * 100,
+                Percentage = maxPossibleScore > 0 ? (double)totalScore / maxPossibleScore * 100 : 0,
                 SubmitDate = studentQuiz.SubmitDate,
                 QuestionResults = questionResults
             });

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ELProject.Domain.Models
 {
     public class Question
@@ -8,6 +10,8 @@ namespace ELProject.Domain.Models
         public string? Explanation { get; set; }
         public int Points { get; set; } = 1;
         public int QuizId { get; set; }
+        
+        [JsonIgnore]
         public Quiz Quiz { get; set; } = null!;
         public List<Option> Options { get; set; } = [];
     }

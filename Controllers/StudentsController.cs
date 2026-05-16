@@ -1,4 +1,3 @@
-using System.Reflection.Metadata.Ecma335;
 using System.Security.Claims;
 using ELProject.DataAccess.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -18,10 +17,13 @@ namespace ELProject.Controllers
         {
             var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (string.IsNullOrEmpty(studentId))
+                return Unauthorized(new { message = "Invalid token." });
+
             var profile = await _unitOfWork.Users.GetStudentProfileAsync(studentId);
-            return profile == null? 
-                NotFound(new { message = $"No profile found for Student ID: {studentId}" }) : 
-                Ok(profile);
+            return profile == null
+                ? NotFound(new { message = "Student profile not found." })
+                : Ok(profile);
         }
 
         [HttpGet("dashboard")]
@@ -29,8 +31,13 @@ namespace ELProject.Controllers
         {
             var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var dashboard =  await _unitOfWork.Users.GetStudentDashboardAsync(studentId);
-            return dashboard == null? NotFound(new {message = $"No dashboard found for Student ID: {studentId}"}) : Ok(dashboard);
+            if (string.IsNullOrEmpty(studentId))
+                return Unauthorized(new { message = "Invalid token." });
+
+            var dashboard = await _unitOfWork.Users.GetStudentDashboardAsync(studentId);
+            return dashboard == null
+                ? NotFound(new { message = "Student dashboard not found." })
+                : Ok(dashboard);
         }
 
         [HttpGet("my-courses")]
@@ -38,9 +45,13 @@ namespace ELProject.Controllers
         {
             var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (string.IsNullOrEmpty(studentId))
+                return Unauthorized(new { message = "Invalid token." });
+
             var myCourses = await _unitOfWork.Users.GetMyCoursesAsync(studentId);
 
-            return myCourses.Count == 0? NotFound(new {message = $"No courses found for Student ID: {studentId}"}) : Ok(myCourses);
+            // Return empty list instead of 404 — student simply has no courses yet
+            return Ok(myCourses);
         }
     }
 }
