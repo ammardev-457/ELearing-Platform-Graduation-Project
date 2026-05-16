@@ -52,8 +52,8 @@ namespace ELProject.Controllers
             return Ok(activities);
         }
 
-        [HttpGet("{instructorId}/profile")]
         [AllowAnonymous]
+        [HttpGet("{instructorId}/profile")]
         public async Task<IActionResult> GetInstructorProfile(string instructorId)
         {
             var dto = await _repo.GetInstructorProfileAsync(instructorId);
@@ -73,9 +73,3 @@ namespace ELProject.Controllers
         }
     }
 }
-
-// ---- Additional endpoints commonly used in real e-learning apps ----
-        // - CRUD for courses (Create/Update/Delete)
-        // - Get students of a course
-        // - Get course revenue / analytics per course
-        // Implement these in the controller calling repository methods as needed.

@@ -13,8 +13,6 @@ namespace ELProject.Shared.DTOs.Instructor
         public string? Thumbnail { get; set; }
         public CourseLevel? Level { get; set; } // Beginner, Intermediate, Advanced
         public int CategoryId { get; set; }
-
-
     }
 
 }
