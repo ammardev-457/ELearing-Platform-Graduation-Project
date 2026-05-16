@@ -1,5 +1,5 @@
 using ELProject.Domain.Models;
-using ELProject.Shared.DTOs;
+using ELProject.Shared.DTOs.Sections;
 
 namespace ELProject.DataAccess.Repositories.Interfaces
 {

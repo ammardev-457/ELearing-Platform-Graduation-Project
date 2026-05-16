@@ -101,4 +101,40 @@ public class AzureBlobStorageService : IFileStorageService
 
         return response.Value; // true if deleted, false if not found
     }
+
+    public async Task<string?> GenerateSasUrlAsync(string fileUrl, FileType type, int expiresInMinutes = 60)
+    {
+        if (string.IsNullOrEmpty(fileUrl))
+            return null;
+
+        var fileName = Path.GetFileName(new Uri(fileUrl).LocalPath);
+        var containerName = type switch
+        {
+            FileType.Image => "images",
+            FileType.Pdf => "pdfs",
+            FileType.Video => "videos",
+            _ => "misc"
+        };
+
+        var containerClient = _serviceClient.GetBlobContainerClient(containerName);
+        var blobClient = containerClient.GetBlobClient(fileName);
+
+        if (!await blobClient.ExistsAsync())
+            return null;
+
+        // Build the SAS token — read-only, expires in N minutes
+        var sasBuilder = new BlobSasBuilder
+        {
+            BlobContainerName = containerName,
+            BlobName = fileName,
+            Resource = "b",                                         // "b" = blob
+            ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(expiresInMinutes)
+        };
+        sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+        // Generate the full signed URI
+        var sasUri = blobClient.GenerateSasUri(sasBuilder);
+        return sasUri.ToString();
+    }
+
 }

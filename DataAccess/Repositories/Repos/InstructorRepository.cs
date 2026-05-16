@@ -24,17 +24,20 @@ namespace ELProject.DataAccess.Repositories.Repos
             var coursesCount = await coursesQuery.CountAsync();
 
             var totalStudents = await _context.Enrollments
+                .Include(e => e.Course)
                 .Where(e => e.Course.UserId == instructorId)
                 .Select(e => e.StudentId)
                 .Distinct()
                 .CountAsync();
 
             var avgRating = await _context.Reviews
+                .Include(r => r.Course)
                 .Where(r => r.Course.UserId == instructorId)
                 .Select(r => (double?)r.Rating)
                 .AverageAsync() ?? 0;
 
             var totalRevenue = await _context.Orders
+                .Include(o => o.Course)
                 .Where(o => o.Course.UserId == instructorId && o.Status == PaymentStatus.Success.ToString())
                 .Select(o => (decimal?)o.Amount)
                 .SumAsync() ?? 0;
@@ -59,6 +62,9 @@ namespace ELProject.DataAccess.Repositories.Repos
                     Title = c.Title,
                     CreatedDate = c.CreatedDate,
                     Rate = c.Reviews.Any() ? c.Reviews.Average(r => r.Rating) : 0,
+                    Level = c.Level,
+                    Thumbnail = c.Thumbnail,
+                    CategoryId = c.CategoryId,
                     StudentsCount = c.Enrollments.Count(),
                     Revenue = c.Orders.Where(o => o.Status == PaymentStatus.Success.ToString()).Sum(o => (decimal?)o.Amount) ?? 0
                 })
@@ -66,43 +72,6 @@ namespace ELProject.DataAccess.Repositories.Repos
 
             return courses;
         }
-
-        //public async Task<InstructorDashboardDto> GetInstructorDashboardAsync(string instructorId)
-        //{
-        //    var coursesQuery = _context.Courses.Where(c => c.UserId == instructorId);
-
-        //    var coursesCount = await coursesQuery.CountAsync();
-
-        //    var totalStudents = await _context.Enrollments
-        //        .Where(e => e.Course.UserId == instructorId)
-        //        .Select(e => e.StudentId)
-        //        .Distinct()
-        //        .CountAsync();
-
-        //    var avgRating = await _context.Reviews
-        //        .Where(r => r.Course.UserId == instructorId)
-        //        .Select(r => (double?)r.Rating)
-        //        .AverageAsync() ?? 0;
-
-        //    var totalRevenue = await _context.Orders
-        //        .Where(o => o.Course.UserId == instructorId && o.Status == PaymentStatus.Success.ToString())
-        //        .Select(o => (decimal?)o.Amount)
-        //        .SumAsync() ?? 0;
-
-        //    var courses = await GetInstructorCoursesAsync(instructorId);
-
-        //    var recent = await GetRecentActivityAsync(instructorId, 6);
-
-        //    return new InstructorDashboardDto
-        //    {
-        //        CoursesCount = coursesCount,
-        //        TotalStudents = totalStudents,
-        //        AverageRating = Math.Round(avgRating, 2),
-        //        TotalRevenue = totalRevenue,
-        //        Courses = courses,
-        //        RecentActivities = recent
-        //    };
-        //}
 
         public async Task<IReadOnlyList<RecentActivityDto>> GetRecentActivityAsync(string instructorId, int count = 4)
         {

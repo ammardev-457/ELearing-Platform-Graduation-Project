@@ -127,6 +127,7 @@ namespace ELProject.Controllers
                 return Unauthorized("User not authenticated");
 
             var isEnrolled = await _unitOfWork.Enrollments.IsFoundAsync(studentId, courseId);
+
             if (!isEnrolled)
                 return Forbid("You are not enrolled in this course");
 
@@ -219,11 +220,12 @@ namespace ELProject.Controllers
             if (course.UserId != userId)
                 return Unauthorized("You do not have permission to delete this course.");
 
+            _unitOfWork.Courses.Remove(course);
+            await _unitOfWork.CompleteAsync();
+
             if (course.Thumbnail != null)
                 await fileService.DeleteFileAsync(course.Thumbnail, FileType.Image);
 
-            _unitOfWork.Courses.Remove(course);
-            await _unitOfWork.CompleteAsync();
             return Ok("Course Deleted Successfully");
         }
 

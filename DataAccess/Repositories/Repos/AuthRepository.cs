@@ -1,9 +1,9 @@
 ﻿using Azure.Core;
-using ELProject.DataAccess.Results;
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
 using ELProject.Shared.DTOs.Auth;
+using ELProject.Shared.Results;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +40,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             ApplicationUser user = new()
             {
                 Name = UserDto.Name,
-                UserName = $"{UserDto.Email.Split('@')[0]}-{Guid.NewGuid()}",
+                UserName = UserDto.Email,
                 Email = UserDto.Email,
                 Gender = UserDto.Gender,
                 Bio = UserDto.Bio,
@@ -232,7 +232,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 user = new ApplicationUser
                 {
                     Name = payload.Name,
-                    UserName = $"{email.Split('@')[0]}-{Guid.NewGuid()}",
+                    UserName = email,
                     Email = email,
                     EmailConfirmed = true
                 };
@@ -315,7 +315,8 @@ namespace ELProject.DataAccess.Repositories.Repos
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.Name)
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Email, user.Email)
             };
 
             var UserRoles = await userManager.GetRolesAsync(user);

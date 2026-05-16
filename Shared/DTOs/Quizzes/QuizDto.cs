@@ -1,6 +1,6 @@
 using ELProject.Domain.Enums;
 
-namespace ELProject.Shared.Quiz.DTOs
+namespace ELProject.Shared.DTOs.Quizzes
 {
     public class QuizDto
     {
@@ -17,7 +17,13 @@ namespace ELProject.Shared.Quiz.DTOs
     {
         public string QuestionText { get; set; } = string.Empty;
         public string CorrectAnswer { get; set; } = string.Empty;
-        public List<string> Options { get; set; } = [];
-        public int Points { get; set; } = 1;   
+        public string? Explanation { get; set; }
+        public List<OptionDto> Options { get; set; } = [];
+        public int Points { get; set; } = 1;
+    }
+
+    public class OptionDto
+    {
+        public string Text { get; set; } = string.Empty;
     }
 }
