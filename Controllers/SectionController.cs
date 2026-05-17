@@ -20,17 +20,17 @@ namespace ELProject.Controllers
 
         [Authorize(Roles = "Instructor")]
         [HttpPost("course/{courseId}/create")]
-        public async Task<IActionResult> CreateSection(CreateSectionDto dto)
+        public async Task<IActionResult> CreateSection(int courseId, [FromBody] CreateSectionDto dto)
         {
             var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (instructorId == null) return Unauthorized("User Not Authenticated");
 
-            var course = await _unitOfWork.Courses.GetByIdAsync(dto.CourseId);
+            var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
             if (course == null) return NotFound("Course not found");
+
             if (course.UserId != instructorId) return Forbid();
 
-            var sectionId = await _unitOfWork.Sections.CreateSection(dto);
-            await _unitOfWork.CompleteAsync();
+            var sectionId = await _unitOfWork.Sections.CreateSection(courseId, dto);
 
             return Ok(new { sectionId });
         }
@@ -50,13 +50,6 @@ namespace ELProject.Controllers
             return Ok(sections);
         }
 
-        [HttpGet("{sectionId}/course-metadata")]
-        public async Task<IActionResult> GetSectionwithCourseById(int sectionId)
-        {
-            var section = await _unitOfWork.Sections.GetSectionwithCourseById(sectionId);
-            if (section == null) return NotFound("Section not found");
-            return Ok(section);
-        }
 
         [Authorize(Roles = "Instructor")]
         [HttpPut("update/{sectionId}")]

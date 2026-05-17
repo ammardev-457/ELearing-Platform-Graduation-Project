@@ -77,12 +77,12 @@ namespace ELProject.Controllers
             var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (studentId == null) return Unauthorized("User Not Authenticated");
 
+            var lesson = await unitOfWork.Lessons.GetByIdAsync(lessonId);
+            
             var IsEnrolledStudent = await unitOfWork.Enrollments.IsFoundAsync(studentId, courseId);
 
-            if (!IsEnrolledStudent)
-                return Forbid("You are not enrolled in this course");
-
-            var lesson = await unitOfWork.Lessons.GetByIdAsync(lessonId);
+            if (lesson.Order > 2 && !IsEnrolledStudent)
+                return Forbid();
 
             if (lesson == null)
                 return NotFound("Lesson Not Found");
