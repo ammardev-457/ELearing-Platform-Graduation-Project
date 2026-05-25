@@ -11,15 +11,17 @@ namespace ELProject.DataAccess.Repositories.Repos
         private readonly AppDbContext context;
         public SectionRepository(AppDbContext _context) : base(_context) => context = _context;
 
-        public async Task<int> CreateSection(CreateSectionDto dto)
+        public async Task<int> CreateSection(int courseId, CreateSectionDto dto)
         {
             var newSection = new Section
             {
-                CourseId = dto.CourseId,
+                CourseId = courseId,
                 Title = dto.Title,
                 Order = dto.Order
             };
             await context.Sections.AddAsync(newSection);
+            await context.SaveChangesAsync();
+
             return newSection.Id; 
         }
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ELProject.Controllers
 {
@@ -105,36 +106,10 @@ namespace ELProject.Controllers
         }
 
 
-        [AllowAnonymous]
-        [HttpGet("{courseId}/paid-course")]
-        public async Task<IActionResult> GetPaidCourseWithData(int courseId)
+        [HttpGet("{courseId}/course-data")]
+        public async Task<IActionResult> GetCourseData(int courseId)
         {
-            var paidCourse = await _unitOfWork.Courses.GetPaidCourseWithDataAsync(courseId);
-
-            if (paidCourse == null)
-                return NotFound("Course Not Found");
-
-            return Ok(paidCourse);
-        }
-
-
-        [Authorize(Roles = "Student")]
-        [HttpGet("{courseId}/enrolled-course")]
-        public async Task<IActionResult> GetEnrolledCourseWithData(int courseId)
-        {
-            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(studentId))
-                return Unauthorized("User not authenticated");
-
-            var isEnrolled = await _unitOfWork.Enrollments.IsFoundAsync(studentId, courseId);
-
-            if (!isEnrolled)
-                return Forbid("You are not enrolled in this course");
-
-            var course = await _unitOfWork.Courses.GetEnrolledCourseWithDataAsync(courseId);
-
-            if (course == null)
-                return NotFound("Course Not Found");
+            var course = await _unitOfWork.Courses.GetCourseWithDataAsync(courseId);
 
             return Ok(course);
         }

@@ -16,18 +16,19 @@ namespace ELProject.DataAccess.Repositories.Repos
             _context = context;
         }
 
-        public async Task<PaidCourseResult?> GetPaidCourseWithDataAsync(int id)
+        public async Task<CourseResult?> GetCourseWithDataAsync(int id)
         {
             var course = await _context.Courses
+                .Include(c => c.User)
+                .Include(c => c.Category)
                 .Include(c => c.Sections.OrderBy(s => s.Order))
                 .ThenInclude(s => s.Lessons.OrderBy(l => l.Order))
-                .Include(c => c.User)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (course == null)
                 return null;
 
-            var result = new PaidCourseResult
+            var result = new CourseResult
             {
                 Id = course.Id,
                 Title = course.Title,
@@ -40,6 +41,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                 InstructorId = course.UserId,
                 InstructorName = course.User.Name,
                 CategoryId = course.CategoryId,
+                CategoryName = course.Category.Name,
                 Sections = course.Sections.Select(s => new SectionResult
                 {
                     Id = s.Id,
@@ -59,39 +61,5 @@ namespace ELProject.DataAccess.Repositories.Repos
             return result;
         }
 
-        public async Task<Course?> GetEnrolledCourseWithDataAsync(int id)
-        {
-            var course = await _context.Courses
-                .Include(c => c.Sections.OrderBy(s => s.Order))
-                .ThenInclude(s => s.Lessons.OrderBy(l => l.Order))
-                .Select(c => new Course
-                {
-                    Id = c.Id,
-                    Title = c.Title,
-                    Thumbnail = c.Thumbnail,
-                    Level = c.Level,
-                    CategoryId = c.CategoryId,
-                    Sections = c.Sections.Select(s => new Section
-                    {
-                        Id = s.Id,
-                        Title = s.Title,
-                        Order = s.Order,
-                        Lessons = s.Lessons.Select(l => new Lesson
-                        {
-                            Id = l.Id,
-                            Title = l.Title,
-                            Order = l.Order,
-                            Type = l.Type,
-                            DurationInSeconds = l.DurationInSeconds ?? 60,
-                        }).ToList()
-                    }).ToList()
-                })
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (course == null)
-                return null;
-
-            return course;
-        }
     }
 }

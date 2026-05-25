@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ELProject.Shared.Results
 {
-    public class PaidCourseResult
+    public class CourseResult
     {
         public int Id { get; set; }
         public string Title { get; set; } = null!;
