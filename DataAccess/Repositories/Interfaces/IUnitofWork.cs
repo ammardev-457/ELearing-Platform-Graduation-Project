@@ -6,6 +6,7 @@ namespace ELProject.DataAccess.Repositories.Interfaces
         ITransactionRepository Transactions { get; }
         IEnrollmentRepository Enrollments { get; }
         ICourseRepository Courses { get; }
+        ICategoryRepository Categories { get; }
         ILessonRepository Lessons { get; }
         IUserRepository Users { get; }
         ISectionRepository Sections { get; }

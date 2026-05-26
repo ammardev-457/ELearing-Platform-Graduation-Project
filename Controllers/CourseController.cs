@@ -75,7 +75,20 @@ namespace ELProject.Controllers
         public async Task<IActionResult> GetAllCourses([FromQuery] PaginationParameters paginationParams)
         {
             var result = await _unitOfWork.Courses.GetAsync(null, paginationParams.PagedNumber, paginationParams.PagedSize);
-            return Ok(result);
+            return Ok(result.Items.Select(c => new
+            {
+                id = c.Id,
+                title = c.Title,
+                shortDescription = c.ShortDescription,
+                longDescription = c.LongDescription,
+                thumbnail = c.Thumbnail,
+                createdDate = c.CreatedDate,
+                level = c.Level,
+                price = c.Price,
+                rate = c.Rate,
+                userId = c.UserId,
+                categoryId = c.CategoryId
+            }));
         }
 
 
@@ -122,7 +135,21 @@ namespace ELProject.Controllers
                 c => c.CategoryId == categoryId,
                 paginationParams.PagedNumber,
                 paginationParams.PagedSize);
-            return Ok(result);
+
+            return Ok(result.Items.Select(c => new
+            {
+                id = c.Id,
+                title = c.Title,
+                shortDescription = c.ShortDescription,
+                longDescription = c.LongDescription,
+                thumbnail = c.Thumbnail,
+                createdDate = c.CreatedDate,
+                level = c.Level,
+                price = c.Price,
+                rate = c.Rate,
+                userId = c.UserId,
+                categoryId = c.CategoryId
+            }));
         }
 
 
@@ -133,20 +160,21 @@ namespace ELProject.Controllers
                 c => c.UserId == instructorId,
                 paginationParams.PagedNumber,
                 paginationParams.PagedSize);
-            return Ok(result);
-        }
 
-
-        [Authorize(Roles = "Instructor")]
-        [HttpGet("download-file")]
-        public async Task<IActionResult> DownloadFile(string fileUrl, FileType type)
-        {
-            var result = await fileService.DownloadFileAsync(fileUrl, type);
-
-            if (result == null)
-                return NotFound();
-
-            return File(result.Value.stream, result.Value.contentType, result.Value.fileName);
+            return Ok(result.Items.Select(c => new
+            {
+                id = c.Id,
+                title = c.Title,
+                shortDescription = c.ShortDescription,
+                longDescription = c.LongDescription,
+                thumbnail = c.Thumbnail,
+                createdDate = c.CreatedDate,
+                level = c.Level,
+                price = c.Price,
+                rate = c.Rate,
+                userId = c.UserId,
+                categoryId = c.CategoryId
+            }));
         }
 
 
@@ -162,12 +190,13 @@ namespace ELProject.Controllers
             if (course.UserId != userId)
                 return Unauthorized("You do not have permission to update this course.");
 
-            course.Title = courseDto.Title;
-            course.Price = courseDto.Price;
-            course.CategoryId = courseDto.CategoryId;
-            course.Level = courseDto.Level;
-            course.ShortDescription = courseDto.ShortDescription;
-            course.LongDescription = courseDto.LongDescription;
+            course.Title = courseDto.Title ?? course.Title;
+            course.ShortDescription = courseDto.ShortDescription ?? course.ShortDescription;
+            course.LongDescription = courseDto.LongDescription ?? course.LongDescription;
+            course.Level = courseDto.Level ?? course.Level;
+            course.CategoryId = courseDto.CategoryId == 0 ? course.CategoryId : courseDto.CategoryId;
+            course.Price = courseDto.Price == 0 ? course.Price : courseDto.Price;
+
             if (courseDto.Thumbnail != null)
             {
                 if (course.Thumbnail != null)
@@ -176,10 +205,17 @@ namespace ELProject.Controllers
                 course.Thumbnail = await fileService.UploadFileAsync(courseDto.Thumbnail, FileType.Image);
             }
 
-            _unitOfWork.Courses.Update(course);
-            await _unitOfWork.CompleteAsync();
+            try
+            {
+                _unitOfWork.Courses.Update(course);
+                await _unitOfWork.CompleteAsync();
 
-            return CreatedAtAction(nameof(GetCourseMetaData), new { id = course.Id }, course);
+                return CreatedAtAction(nameof(GetCourseMetaData), new { courseId = course.Id }, course);
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while updating the course. Please try again.");
+            }
         }
 
 
