@@ -9,6 +9,7 @@ namespace ELProject.DataAccess.Repositories.Repos
         public ITransactionRepository Transactions { get; private set; } = null!;
         public IEnrollmentRepository Enrollments { get; private set; } = null!;
         public ICourseRepository Courses { get; private set; } = null!;
+        public ICategoryRepository Categories { get; private set; } = null!;
         public IUserRepository Users { get; private set; } = null!;
         public ILessonRepository Lessons { get; private set; } = null!;
         public ISectionRepository Sections { get; private set; } = null!;
@@ -21,6 +22,7 @@ namespace ELProject.DataAccess.Repositories.Repos
             Transactions = new TransactionRepository(_context);
             Enrollments = new EnrollmentRepository(_context);
             Courses = new CourseRepository(_context);
+            Categories = new CategoryRepository(_context);
             Lessons = new LessonRepository(_context);
             Users = new UserRepository(_context);
             Sections = new SectionRepository(_context);
