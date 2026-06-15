@@ -26,17 +26,13 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpPost("section/{sectionId}/create")]
-        public async Task<IActionResult> CreateLesson(int sectionId, [FromForm] CreateLessonDto dto)
+        [HttpPost("{courseId}/section/{sectionId}/create")]
+        public async Task<IActionResult> CreateLesson(int courseId, int sectionId, [FromForm] CreateLessonDto dto)
         {
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
-            var section = await unitOfWork.Sections.GetByIdAsync(sectionId);
-            if (section == null)
-                return NotFound("Section not found");
-
-            var course = await unitOfWork.Courses.GetByIdAsync(section.CourseId);
+            var course = await unitOfWork.Courses.GetByIdAsync(courseId);
             if (course.UserId != InstructorId)
                 return Forbid();
 
@@ -45,12 +41,14 @@ namespace ELProject.Controllers
             if (string.IsNullOrEmpty(url))
                 return StatusCode(500, "An error occurred while uploading the file");
 
+            int order = await unitOfWork.Lessons.GetOrderOfLastLessonInSection(sectionId) ?? 0;
+
             Lesson newLesson = new()
             {
                 SectionId = sectionId,
                 Title = dto.Title,
                 Type = dto.Type,
-                Order = dto.Order,
+                Order = order + 1,
                 FileUrl = url
             };
 
@@ -72,7 +70,7 @@ namespace ELProject.Controllers
 
 
         [HttpGet("course/{courseId}/lesson/{lessonId}")]
-        public async Task<IActionResult> GetLessonById(int lessonId, int courseId)
+        public async Task<IActionResult> GetLessonById(int courseId, int lessonId)
         {
             var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (studentId == null) return Unauthorized("User Not Authenticated");
@@ -153,14 +151,12 @@ namespace ELProject.Controllers
 
                 var url = await fileService.UploadFileAsync(dto.File, dto.Type);
                 lesson.FileUrl = url;
+                lesson.DurationInSeconds = dto.DurationInSeconds;
             }
 
-            lesson.Title = dto.Title;
-            lesson.Order = dto.Order;
+            lesson.Title = dto.Title ?? lesson.Title;
+            lesson.Order = dto.Order == 0 ? lesson.Order : dto.Order;
             lesson.Type = dto.Type;
-
-            if (dto.DurationInSeconds != null)
-                lesson.DurationInSeconds = dto.DurationInSeconds;
 
             unitOfWork.Lessons.Update(lesson);
             await unitOfWork.CompleteAsync();
