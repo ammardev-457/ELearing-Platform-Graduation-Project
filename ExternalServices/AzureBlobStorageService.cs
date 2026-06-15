@@ -41,7 +41,7 @@ public class AzureBlobStorageService : IFileStorageService
             HttpHeaders = new BlobHttpHeaders
             {
                 ContentType = file.ContentType,
-                ContentDisposition = $"inline; filename=\"{file.FileName}\""
+                ContentDisposition = "inline"
             }
         };
 

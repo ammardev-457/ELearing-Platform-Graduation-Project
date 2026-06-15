@@ -6,5 +6,6 @@ namespace ELProject.DataAccess.Repositories.Interfaces
     {
         Task<IEnumerable<Lesson>> GetLessonsBySectionId(int sectionId);
         Task<Lesson?> GetLessonWithInstructorId(string instructorId, int lessonId);
+        Task<int?> GetOrderOfLastLessonInSection(int sectionId);
     }
 }

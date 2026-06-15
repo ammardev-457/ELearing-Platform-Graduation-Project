@@ -31,5 +31,13 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .Where(l => l.Section.Course.UserId == instructorId)
                 .FirstOrDefaultAsync(l => l.Id == lessonId);
         }
+
+        public async Task<int?> GetOrderOfLastLessonInSection(int sectionId)
+        {
+            return await _context.Lessons
+            .Where(l => l.SectionId == sectionId)
+            .MaxAsync(l => (int?)l.Order); // return null if there aren't lessons in the section
+        }
+
     }
 }
