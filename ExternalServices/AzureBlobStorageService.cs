@@ -40,10 +40,12 @@ public class AzureBlobStorageService : IFileStorageService
         {
             HttpHeaders = new BlobHttpHeaders
             {
-                ContentType = file.ContentType,
-                ContentDisposition = "inline"
+                ContentType = file.ContentType
             }
         };
+
+        if (type == FileType.Video)
+            options.HttpHeaders.ContentDisposition = "inline";
 
         await blobClient.UploadAsync(stream, options);
 

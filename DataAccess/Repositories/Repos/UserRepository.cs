@@ -1,5 +1,7 @@
 using ELProject.DataAccess.Repositories.Interfaces;
+using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
+using ELProject.ExternalServices;
 using ELProject.Shared.DTOs.Student;
 using Microsoft.EntityFrameworkCore;
 
@@ -76,6 +78,7 @@ namespace ELProject.DataAccess.Repositories.Repos
                     Email = u.Email!,
                     Username = u.UserName!,
                     Bio = u.Bio,
+                    Gender = u.Gender,
                     ProfilePicture = u.PathOfImage,
                     JoinDate = u.JoinDate,
                     CoursesCount = u.Enrollments.Count
@@ -83,6 +86,31 @@ namespace ELProject.DataAccess.Repositories.Repos
                 .FirstOrDefaultAsync();
 
             return userProfile;
+        }
+
+        public async Task<ApplicationUser> UpdateStudentProfile(string studentId,EditStudentProfileDto dto)
+        {
+            var studentProfile = await _context.Users
+            .Select(u => new ApplicationUser
+            {
+                Name = u.Name,
+                Email = u.Email,
+                Bio = u.Bio,
+                Gender = u.Gender,
+                PathOfImage = u.PathOfImage,
+            })
+                .FirstOrDefaultAsync(u => u.Id == studentId);
+
+            if (studentProfile != null)
+            {
+                studentProfile.Name = dto.Name ?? studentProfile.Name;
+                studentProfile.Email = dto.Email ?? studentProfile.Email;
+                studentProfile.Bio = dto.Bio ?? studentProfile.Bio;
+                studentProfile.Gender = dto.Gender ?? studentProfile.Gender;
+            }
+
+            return studentProfile;
+
         }
     }
 

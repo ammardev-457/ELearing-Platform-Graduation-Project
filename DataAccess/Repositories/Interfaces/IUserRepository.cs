@@ -8,5 +8,6 @@ namespace ELProject.DataAccess.Repositories.Interfaces
         Task<StudentProfileDto?> GetStudentProfileAsync(string studentId); 
         Task<StudentDashboardDto?> GetStudentDashboardAsync(string studentId);
         Task<IReadOnlyList<StudentCoursesDto>> GetMyCoursesAsync(string studentId);
+        Task<ApplicationUser> UpdateStudentProfile(string studentId, EditStudentProfileDto dto);
     }
 }

@@ -1,3 +1,5 @@
+using ELProject.Domain.Enums;
+
 namespace ELProject.Shared.DTOs.Student
 {
     public class StudentProfileDto
@@ -7,6 +9,7 @@ namespace ELProject.Shared.DTOs.Student
         public required string Username { get; set; }
         public string? Bio { get; set; }
         public string? ProfilePicture { get; set; }
+        public Gender? Gender { get; set; }
         public DateTime JoinDate { get; set; }
         public int CoursesCount { get; set; }
     }
