@@ -25,51 +25,16 @@ namespace ELProject.DataAccess.Repositories.Repos
             return newSection.Id; 
         }
 
-        public async Task<Section?> GetSectionById(int sectionId) => await context.Sections.FindAsync(sectionId);
-
-        public async Task<IEnumerable<Section>> GetSectionsWithLessonsByCourseId(int courseId)
-        {
-            return await context.Sections
-            .Where(s => s.CourseId == courseId)
-            .Include(s => s.Lessons)
-            .Select(s => new Section
-            {
-                Id = s.Id,
-                Title = s.Title,
-                Order = s.Order,
-                Lessons = s.Lessons.Select(l => new Lesson
-                {
-                    Id = l.Id,
-                    Title = l.Title,
-                    Order = l.Order,
-                    Type = l.Type,
-                    DurationInSeconds = l.DurationInSeconds ?? 60,
-                    SectionId = l.SectionId
-                }).ToList()
-            })
-            .OrderBy(s => s.Order)
-            .ToListAsync();
-        }
-
         public async Task<Section?> GetSectionwithCourseById(int sectionId) => await context.Sections
             .Include(s => s.Course)
             .FirstOrDefaultAsync(s => s.Id == sectionId);
 
-        public async Task<bool> UpdateSection(int sectionId, UpdateSectionDto dto)
+        public async Task<bool> UpdateSection(Section sectionFromDb, UpdateSectionDto dto)
         {
-            var section = await context.Sections.FindAsync(sectionId);
-            if (section == null) return false;
-            section.Title = dto.Title;
-            section.Order = dto.Order;
+            sectionFromDb.Title = dto.Title ?? sectionFromDb.Title;
+            sectionFromDb.Order = dto.Order == 0 ? sectionFromDb.Order : dto.Order;
             return true;
         }
 
-        public async Task<bool> DeleteSection(int sectionId)
-        {
-            var section = await context.Sections.FindAsync(sectionId);
-            if (section == null) return false;
-            context.Sections.Remove(section);
-            return true;
-        }
     }
 }

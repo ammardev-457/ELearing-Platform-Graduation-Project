@@ -2,7 +2,10 @@
 using ELProject.Domain.Enums;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
+using ELProject.Shared.DTOs;
 using ELProject.Shared.DTOs.Instructor;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ELProject.DataAccess.Repositories.Repos
@@ -10,12 +13,23 @@ namespace ELProject.DataAccess.Repositories.Repos
     public class InstructorRepository : Repository<Course, int>, IInstructorRepository
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IFileStorageService fileStorage;
 
-        public InstructorRepository(AppDbContext context, IFileStorageService fileStorage) : base(context)
+        public InstructorRepository(
+            AppDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IFileStorageService fileStorage) : base(context)
         {
             _context = context;
+            _userManager = userManager;
             this.fileStorage = fileStorage;
+        }
+
+        public async Task<IList<ApplicationUser>> GetAllInstructorsAsync()
+        {
+            var instructors = await _userManager.GetUsersInRoleAsync("Instructor");
+            return instructors;
         }
 
         public async Task<InstructorStatisticsDto> GetInstructorStatisticsAsync(string instructorId)
@@ -147,11 +161,12 @@ namespace ELProject.DataAccess.Repositories.Repos
             if (instructor == null)
                 return false;
 
-            instructor.Name = dto.Name;
-            instructor.Email = dto.Email;
-            instructor.Title = dto.Title;
-            instructor.Bio = dto.Bio;
-            instructor.AboutMe = dto.AboutMe;
+            instructor.Name = dto.Name ?? instructor.Name;
+            instructor.Email = dto.Email ?? instructor.Email;
+            instructor.Title = dto.Title ?? instructor.Title;
+            instructor.Bio = dto.Bio ?? instructor.Bio;
+            instructor.AboutMe = dto.AboutMe ?? instructor.AboutMe;
+            instructor.Gender = dto.Gender ?? instructor.Gender;
             if(dto.Image != null)
             {
                 if(instructor.PathOfImage != null)

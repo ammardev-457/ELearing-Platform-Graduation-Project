@@ -72,18 +72,27 @@ namespace ELProject.Controllers
         [HttpGet("course/{courseId}/lesson/{lessonId}")]
         public async Task<IActionResult> GetLessonById(int courseId, int lessonId)
         {
-            var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (studentId == null) return Unauthorized("User Not Authenticated");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized("User Not Authenticated");
 
             var lesson = await unitOfWork.Lessons.GetByIdAsync(lessonId);
-            
-            var IsEnrolledStudent = await unitOfWork.Enrollments.IsFoundAsync(studentId, courseId);
-
-            if (lesson.Order > 2 && !IsEnrolledStudent)
-                return Forbid();
-
             if (lesson == null)
                 return NotFound("Lesson Not Found");
+
+            if (User.IsInRole("Student"))
+            {
+                var IsEnrolledStudent = await unitOfWork.Enrollments.IsFoundAsync(userId, courseId);
+
+                if (lesson.Order > 2 && !IsEnrolledStudent)
+                    return Forbid();
+            }
+            else if (User.IsInRole("Instructor"))
+            {
+                var course = await unitOfWork.Courses.GetByIdAsync(courseId);
+                if (course.UserId != userId)
+                    return Forbid();
+            }
+
 
             // 3. Generate short-lived SAS URL (no video bytes touch your server)
             var sasUrl = await fileService.GenerateSasUrlAsync(lesson.FileUrl!, lesson.Type, expiresInMinutes: 60);
@@ -128,18 +137,27 @@ namespace ELProject.Controllers
         {
             var lessons = await unitOfWork.Lessons.GetLessonsBySectionId(sectionId);
 
-            return Ok(lessons);
+            return Ok(lessons.Select(l => new
+            {
+                id = l.Id,
+                title = l.Title,
+                type = l.Type,
+                order = l.Order,
+                fileUrl = l.FileUrl,
+                durationInSeconds = l.DurationInSeconds,
+                sectionId
+            }));
         }
 
 
         [Authorize(Roles = "Instructor")]
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateLesson([FromForm] UpdateLessonDto dto)
+        [HttpPut("update/{lessonId}")]
+        public async Task<IActionResult> UpdateLesson(int lessonId, [FromForm] UpdateLessonDto dto)
         {
             var InstructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (InstructorId == null) return Unauthorized("User Not Authenticated");
 
-            var lesson = await unitOfWork.Lessons.GetLessonWithInstructorId(InstructorId, dto.Id);
+            var lesson = await unitOfWork.Lessons.GetLessonWithInstructorId(InstructorId, lessonId);
 
             if (lesson == null)
                 return NotFound("Lesson Not Found");

@@ -38,18 +38,16 @@ namespace ELProject.Controllers
         [HttpGet("{sectionId}")]
         public async Task<IActionResult> GetSectionById(int sectionId)
         {
-            var section = await _unitOfWork.Sections.GetSectionById(sectionId);
+            var section = await _unitOfWork.Sections.GetByIdAsync(sectionId);
             if (section == null) return NotFound("Section not found");
-            return Ok(section);
+            return Ok(new
+            {
+                id = section.Id,
+                title = section.Title,
+                order = section.Order,
+                courseId = section.CourseId
+            });
         }
-
-        [HttpGet("{courseId}/sections-with-lessons")]
-        public async Task<IActionResult> GetSectionsByCourseId(int courseId)
-        {
-            var sections = await _unitOfWork.Sections.GetSectionsWithLessonsByCourseId(courseId);
-            return Ok(sections);
-        }
-
 
         [Authorize(Roles = "Instructor")]
         [HttpPut("update/{sectionId}")]
@@ -62,9 +60,10 @@ namespace ELProject.Controllers
             if (section == null) return NotFound("Section not found");
             if (section.Course.UserId != instructorId) return Forbid();
 
-            var result = await _unitOfWork.Sections.UpdateSection(sectionId, dto);
-            if (!result) return NotFound("Section not found or update failed");
+            var result = await _unitOfWork.Sections.UpdateSection(section, dto);
+            if (!result) return NotFound("Section update failed");
 
+            _unitOfWork.Sections.Update(section);
             await _unitOfWork.CompleteAsync();
             return Ok("Section updated successfully");
         }
@@ -80,11 +79,16 @@ namespace ELProject.Controllers
             if (section == null) return NotFound("Section not found");
             if (section.Course.UserId != instructorId) return Forbid();
 
-            var result = await _unitOfWork.Sections.DeleteSection(sectionId);
-            if (!result) return NotFound("Section not found or delete failed");
-
-            await _unitOfWork.CompleteAsync();
-            return Ok("Section deleted successfully");
+            try
+            {
+                _unitOfWork.Sections.Remove(section);
+                await _unitOfWork.CompleteAsync();
+                return Ok("Section deleted successfully");
+            }
+            catch
+            {
+                return NotFound("Section deleted failed");
+            }
         }
     }
 }

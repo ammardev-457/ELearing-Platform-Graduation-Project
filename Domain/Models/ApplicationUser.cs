@@ -9,10 +9,10 @@ namespace ELProject.Domain.Models
         public string? Bio { get; set; }
         public Gender? Gender { get; set; }
         public DateTime JoinDate { get; set; } = DateTime.UtcNow;
+        public string? PathOfImage { get; set; } = string.Empty;
         
         // For Instructor
         public string? Title { get; set; } = string.Empty;
-        public string? PathOfImage { get; set; } = string.Empty;
         public string? AboutMe { get; set; } = string.Empty;
 
         // Navigation Properties
