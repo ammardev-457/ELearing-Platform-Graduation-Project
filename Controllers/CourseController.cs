@@ -70,11 +70,10 @@ namespace ELProject.Controllers
         /// <remarks>
         /// Get all published and active courses on the platform with pagination. Example: GET /api/courses?PagedNumber=1&PagedSize=10
         /// </remarks>
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAllCourses([FromQuery] PaginationParameters paginationParams)
         {
-            var result = await _unitOfWork.Courses.GetAsync(null, paginationParams.PagedNumber, paginationParams.PagedSize);
+            var result = await _unitOfWork.Courses.GetAllCoursesAsync(paginationParams.PagedNumber, paginationParams.PagedSize);
             return Ok(result.Items.Select(c => new
             {
                 id = c.Id,
@@ -87,7 +86,8 @@ namespace ELProject.Controllers
                 price = c.Price,
                 rate = c.Rate,
                 userId = c.UserId,
-                categoryId = c.CategoryId
+                categoryId = c.CategoryId,
+                categoryName = c.Category.Name
             }));
         }
 

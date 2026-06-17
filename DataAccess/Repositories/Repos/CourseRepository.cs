@@ -16,6 +16,17 @@ namespace ELProject.DataAccess.Repositories.Repos
             _context = context;
         }
 
+        public async Task<PaginationResult<Course>> GetAllCoursesAsync(int pageNumber, int pageSize)
+        {
+            var items = await _context.Courses
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Include(c => c.Category)
+                .ToListAsync();
+
+            return new PaginationResult<Course> { TotalCount = items.Count, Items = items };
+        }
+
         public async Task<CourseResult?> GetCourseWithDataAsync(int id)
         {
             var course = await _context.Courses

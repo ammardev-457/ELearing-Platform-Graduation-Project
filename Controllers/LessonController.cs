@@ -112,7 +112,14 @@ namespace ELProject.Controllers
 
             // 4. For non-video files (PDF, Image) — just return the URL directly
             if (lesson.Type != FileType.Video)
-                return Ok(new { fileUrl = sasUrl });
+                return Ok(new 
+                {
+                    leesonId = lesson.Id,
+                    title = lesson.Title,
+                    type = lesson.Type,
+                    order = lesson.Order,
+                    fileUrl = sasUrl
+                });
 
             // 5. For video — return URL + watermark payload
             var watermark = User.FindFirstValue(ClaimTypes.Email)
