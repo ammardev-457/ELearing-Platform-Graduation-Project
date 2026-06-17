@@ -10,9 +10,6 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         // Primary Key
         builder.HasKey(o => o.Id);
 
-        builder.HasIndex(o => new { o.StudentId, o.CourseId })
-               .IsUnique();
-
         builder.HasIndex(o => o.PaymobOrderId)
                .IsUnique(false); 
 

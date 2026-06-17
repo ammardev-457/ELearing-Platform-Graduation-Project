@@ -58,12 +58,12 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"]))
     };
-})
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
 });
+// .AddGoogle(options =>
+// {
+//     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+//     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+// });
 
 builder.Services.AddCors(options =>
 {

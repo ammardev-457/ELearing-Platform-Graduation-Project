@@ -1,6 +1,7 @@
 ﻿using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.DataAccess.Repositories.Repos;
 using ELProject.Domain.Models;
+using ELProject.Shared.DTOs;
 using ELProject.Shared.DTOs.Instructor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +21,22 @@ namespace ELProject.Controllers
         public InstructorController(InstructorRepository repo)
         {
             _repo = repo;
+        }
+
+        [AllowAnonymous]
+        [HttpGet("instructors")]
+        public async Task<IActionResult> GetAllInstructors()
+        {
+            var instructors = await _repo.GetAllInstructorsAsync();
+
+            return Ok(instructors.Select(i => new
+            {
+                id = i.Id,
+                name = i.Name,
+                image = i.PathOfImage,
+                title = i.Title,
+                aboutMe = i.AboutMe
+            }));
         }
 
         [HttpGet("statistics")]

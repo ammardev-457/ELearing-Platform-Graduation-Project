@@ -47,7 +47,7 @@ namespace ELProject.Controllers
             };
 
             await _unitOfWork.Orders.AddAsync(order);
-            await _unitOfWork.CompleteAsync();  
+            await _unitOfWork.CompleteAsync();
 
             var clientSecret = await _paymobService.CreatePaymentIntentAsync(order, student);
 
@@ -164,14 +164,15 @@ namespace ELProject.Controllers
         {
             string GetVal(JsonElement element, string prop)
             {
-                if (!element.TryGetProperty(prop, out var val)) return "";
+                if (!element.TryGetProperty(prop, out var val) || val.ValueKind == JsonValueKind.Null)
+                    return "";
 
                 return val.ValueKind switch
                 {
                     JsonValueKind.True => "true",
                     JsonValueKind.False => "false",
                     JsonValueKind.String => val.GetString() ?? "",
-                    JsonValueKind.Number => val.ToString(),
+                    JsonValueKind.Number => val.ToString()!,
                     _ => ""
                 };
             }
@@ -181,8 +182,8 @@ namespace ELProject.Controllers
             sb.Append(GetVal(obj, "amount_cents"));
             sb.Append(GetVal(obj, "created_at"));
             sb.Append(GetVal(obj, "currency"));
-            sb.Append(GetVal(obj, "error_occured"));
-            sb.Append(GetVal(obj, "has_parent_transaction"));
+            sb.Append(GetVal(obj, "error_occurred"));         
+            sb.Append(GetVal(obj, "has_parent_profile"));       
             sb.Append(GetVal(obj, "id"));
             sb.Append(GetVal(obj, "integration_id"));
             sb.Append(GetVal(obj, "is_3d_secure"));
@@ -192,13 +193,13 @@ namespace ELProject.Controllers
             sb.Append(GetVal(obj, "is_standalone_payment"));
             sb.Append(GetVal(obj, "is_voided"));
 
-            if (obj.TryGetProperty("order", out var order))
+            if (obj.TryGetProperty("order", out var order) && order.ValueKind != JsonValueKind.Null)
                 sb.Append(GetVal(order, "id"));
 
             sb.Append(GetVal(obj, "owner"));
             sb.Append(GetVal(obj, "pending"));
 
-            if (obj.TryGetProperty("source_data", out var sd))
+            if (obj.TryGetProperty("source_data", out var sd) && sd.ValueKind != JsonValueKind.Null)
             {
                 sb.Append(GetVal(sd, "pan"));
                 sb.Append(GetVal(sd, "sub_type"));

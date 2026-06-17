@@ -128,7 +128,7 @@ namespace ELProject.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Course", b =>
@@ -180,7 +180,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Courses", (string)null);
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Lesson", b =>
@@ -223,7 +223,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("SectionId");
 
-                    b.ToTable("Lessons", (string)null);
+                    b.ToTable("Lessons");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Option", b =>
@@ -246,7 +246,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("Options", (string)null);
+                    b.ToTable("Options");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
@@ -300,10 +300,9 @@ namespace ELProject.Migrations
 
                     b.HasIndex("PaymobOrderId");
 
-                    b.HasIndex("StudentId", "CourseId")
-                        .IsUnique();
+                    b.HasIndex("StudentId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Question", b =>
@@ -316,6 +315,9 @@ namespace ELProject.Migrations
 
                     b.Property<string>("CorrectAnswer")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Explanation")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Points")
@@ -333,7 +335,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("Questions", (string)null);
+                    b.ToTable("Questions");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>
@@ -369,7 +371,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Quizzes", (string)null);
+                    b.ToTable("Quizzes");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Review", b =>
@@ -405,7 +407,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Section", b =>
@@ -431,7 +433,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Sections", (string)null);
+                    b.ToTable("Sections");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.StudentQuiz", b =>
@@ -454,7 +456,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("StudentQuizzes", (string)null);
+                    b.ToTable("StudentQuizzes");
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Transaction", b =>
@@ -499,7 +501,7 @@ namespace ELProject.Migrations
                     b.HasIndex("TransactionId")
                         .IsUnique();
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("Enrollment", b =>
@@ -546,7 +548,7 @@ namespace ELProject.Migrations
                     b.HasIndex("StudentId", "CourseId")
                         .IsUnique();
 
-                    b.ToTable("Enrollments", (string)null);
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -710,7 +712,7 @@ namespace ELProject.Migrations
 
                             b1.HasKey("ApplicationUserId", "Id");
 
-                            b1.ToTable("RefreshToken", (string)null);
+                            b1.ToTable("RefreshToken");
 
                             b1.WithOwner()
                                 .HasForeignKey("ApplicationUserId");

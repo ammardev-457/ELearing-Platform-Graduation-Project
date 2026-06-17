@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ELProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260514121742_AddExplainationColumn")]
-    partial class AddExplainationColumn
+    [Migration("20260617211146_RemoveUniqueStudentIdandCourseIdInOrderTable")]
+    partial class RemoveUniqueStudentIdandCourseIdInOrderTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -303,8 +303,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("PaymobOrderId");
 
-                    b.HasIndex("StudentId", "CourseId")
-                        .IsUnique();
+                    b.HasIndex("StudentId");
 
                     b.ToTable("Orders");
                 });

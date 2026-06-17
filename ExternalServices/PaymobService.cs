@@ -27,7 +27,7 @@ namespace ELProject.ExternalServices
                 special_reference = order.Id.ToString(),
                 billing_data = new
                 {
-                    first_name = student.UserName?? "Student",
+                    first_name = student.UserName ?? "Student",
                     last_name = "User",
                     email = (string.IsNullOrEmpty(student.Email) || !student.Email.Contains("@"))
                         ? "dumyemail@example.com"
@@ -48,19 +48,15 @@ namespace ELProject.ExternalServices
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Token {secretKey}");
 
-            var response = await _httpClient.PostAsync("https://accept.paymob.com/v1/intention/", content);
+            var response = await _httpClient.PostAsync(
+                "https://accept.paymob.com/v1/intention/",
+                content);
 
             var responseString = await response.Content.ReadAsStringAsync();
 
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Paymob Error: {responseString}");
-                return string.Empty;
-            }
-
             using var doc = JsonDocument.Parse(responseString);
             // set order.paymob_order.id
-            order.PaymobOrderId = doc.RootElement.GetProperty("intention_order_id").GetInt64(); 
+            order.PaymobOrderId = doc.RootElement.GetProperty("intention_order_id").GetInt64();
             return doc.RootElement.GetProperty("client_secret").GetString() ?? string.Empty;
         }
     }
