@@ -14,12 +14,6 @@ namespace ELProject.Migrations
                 name: "IX_Orders_StudentId_CourseId",
                 table: "Orders");
 
-            migrationBuilder.AddColumn<string>(
-                name: "Explanation",
-                table: "Questions",
-                type: "nvarchar(max)",
-                nullable: true);
-
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_StudentId",
                 table: "Orders",
