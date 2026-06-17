@@ -54,11 +54,6 @@ namespace ELProject.ExternalServices
 
             var responseString = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine($"Status Code: {(int)response.StatusCode}");
-            Console.WriteLine("Paymob Response:");
-            Console.WriteLine(responseString);
-
-
             using var doc = JsonDocument.Parse(responseString);
             // set order.paymob_order.id
             order.PaymobOrderId = doc.RootElement.GetProperty("intention_order_id").GetInt64();
