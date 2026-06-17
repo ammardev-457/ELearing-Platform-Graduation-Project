@@ -163,9 +163,9 @@ namespace ELProject.DataAccess.Repositories.Repos
 
             instructor.Name = dto.Name ?? instructor.Name;
             instructor.Email = dto.Email ?? instructor.Email;
-            instructor.Title = dto.Title ?? instructor.Title;
-            instructor.Bio = dto.Bio ?? instructor.Bio;
-            instructor.AboutMe = dto.AboutMe ?? instructor.AboutMe;
+            instructor.Title = dto.Title ?? "";
+            instructor.Bio = dto.Bio ?? "";
+            instructor.AboutMe = dto.AboutMe ?? "";
             instructor.Gender = dto.Gender ?? instructor.Gender;
             if(dto.Image != null)
             {
