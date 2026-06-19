@@ -38,8 +38,6 @@ namespace ELProject.DataAccess.Repositories.Repos
             return quiz;
         }
 
-        public async Task<Quiz?> GetQuizByIdAsync(int quizId) => await context.Quizzes.FindAsync(quizId);
-
         public async Task<Quiz?> GetQuizWithDetailsByIdAsync(int quizId) => await context.Quizzes
             .AsNoTracking()
             .Include(q => q.Questions).ThenInclude(q => q.Options)

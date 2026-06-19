@@ -119,7 +119,7 @@ public class WWWRootStorageService : IFileStorageService
         return Task.FromResult(true);
     }
 
-    public async Task<string?> GenerateSasUrlAsync(string fileUrl, FileType type, int expiresInMinutes = 60)
+    public async Task<string?> GenerateSasUrlAsync(string fileUrl, FileType type, int expiresInMinutes = 60, bool manySaSs = false)
     {
         // Not applicable for local storage, return the relative URL
         return await Task.FromResult<string?>(fileUrl);

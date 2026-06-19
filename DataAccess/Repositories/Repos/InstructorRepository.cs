@@ -84,6 +84,12 @@ namespace ELProject.DataAccess.Repositories.Repos
                 })
                 .ToListAsync();
 
+            courses.ForEach(async c =>
+            {
+                if (c.Thumbnail != null)
+                    c.Thumbnail = await fileStorage.GenerateSasUrlAsync(c.Thumbnail, FileType.Image, 1440, true);
+            });
+
             return courses;
         }
 

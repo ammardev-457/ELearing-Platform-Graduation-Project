@@ -39,11 +39,21 @@ namespace ELProject.Controllers
 
         [Authorize]
         [HttpGet("{id}/metadata")]
-        public async Task<ActionResult<Quiz>> GetQuiz(int id)
+        public async Task<IActionResult> GetQuiz(int id)
         {
-            var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
+            var quiz = await _unitOfWork.Quizzes.GetByIdAsync(id);
             if (quiz == null) return NotFound();
-            return quiz;
+
+            return Ok(new
+            {
+                id = quiz.Id,
+                title = quiz.Title,
+                description = quiz.Description,
+                quizType = quiz.QuizType,
+                totalMarks = quiz.TotalMarks,
+                timeLimitInMinutes = quiz.TimeLimitInMinutes,
+                courseId = quiz.CourseId
+            });
         }
 
         [Authorize]
@@ -52,7 +62,28 @@ namespace ELProject.Controllers
         {
             var quiz = await _unitOfWork.Quizzes.GetQuizWithDetailsByIdAsync(id);
             if (quiz == null) return NotFound();
-            return Ok(quiz);
+            return Ok(new
+            {
+                id = quiz.Id,
+                title = quiz.Title,
+                description = quiz.Description,
+                quizType = quiz.QuizType,
+                totalMarks = quiz.TotalMarks,
+                timeLimitInMinutes = quiz.TimeLimitInMinutes,
+                courseId = quiz.CourseId,
+                questions = quiz.Questions.Select(q => new
+                {
+                    id = q.Id,
+                    questionText = q.QuestionText,
+                    points = q.Points,
+                    correctAnswer = q.CorrectAnswer,
+                    options = q.Options.Select(o => new
+                    {
+                        id = o.Id,
+                        text = o.Text
+                    })
+                })
+            });
         }
 
         [Authorize(Roles = "Instructor")]
@@ -63,7 +94,7 @@ namespace ELProject.Controllers
             if (instructorId == null) return Unauthorized("User not authenticated");
 
             var IsInstructorOwnedQuiz = await _unitOfWork.Quizzes.IsInstructorCreatedQuiz(instructorId, quizId);
-            if (!IsInstructorOwnedQuiz) return Forbid("You are not authorized to update this quiz");
+            if (!IsInstructorOwnedQuiz) return Forbid();
 
             try
             {
@@ -166,10 +197,6 @@ namespace ELProject.Controllers
         [HttpGet("{id}/all-results")]
         public async Task<IActionResult> GetAllQuizResults(int id)
         {
-            var quiz = await _unitOfWork.Quizzes.GetQuizByIdAsync(id);
-            if (quiz == null)
-                return NotFound("Quiz not found");
-
             var results = await _unitOfWork.Quizzes.GetAllStudentResultsAsync(id);
             return Ok(results);
         }

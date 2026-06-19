@@ -128,7 +128,7 @@ namespace ELProject.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Course", b =>
@@ -180,7 +180,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Courses");
+                    b.ToTable("Courses", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Lesson", b =>
@@ -223,7 +223,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("SectionId");
 
-                    b.ToTable("Lessons");
+                    b.ToTable("Lessons", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Option", b =>
@@ -246,7 +246,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("Options");
+                    b.ToTable("Options", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Order", b =>
@@ -302,7 +302,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Question", b =>
@@ -335,7 +335,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("Questions");
+                    b.ToTable("Questions", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Quiz", b =>
@@ -371,7 +371,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Quizzes");
+                    b.ToTable("Quizzes", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Review", b =>
@@ -407,7 +407,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews");
+                    b.ToTable("Reviews", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Section", b =>
@@ -433,7 +433,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Sections");
+                    b.ToTable("Sections", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.StudentQuiz", b =>
@@ -456,7 +456,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("StudentQuizzes");
+                    b.ToTable("StudentQuizzes", (string)null);
                 });
 
             modelBuilder.Entity("ELProject.Domain.Models.Transaction", b =>
@@ -501,7 +501,7 @@ namespace ELProject.Migrations
                     b.HasIndex("TransactionId")
                         .IsUnique();
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("Enrollment", b =>
@@ -548,7 +548,7 @@ namespace ELProject.Migrations
                     b.HasIndex("StudentId", "CourseId")
                         .IsUnique();
 
-                    b.ToTable("Enrollments");
+                    b.ToTable("Enrollments", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -712,7 +712,7 @@ namespace ELProject.Migrations
 
                             b1.HasKey("ApplicationUserId", "Id");
 
-                            b1.ToTable("RefreshToken");
+                            b1.ToTable("RefreshToken", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("ApplicationUserId");

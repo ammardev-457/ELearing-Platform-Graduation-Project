@@ -54,6 +54,12 @@ namespace ELProject.Controllers
 
             var myCourses = await _unitOfWork.Users.GetMyCoursesAsync(studentId);
 
+            myCourses.ToList().ForEach(async c =>
+            {
+                if (!string.IsNullOrEmpty(c.Thumbnail))
+                    c.Thumbnail = await _fileStorage.GenerateSasUrlAsync(c.Thumbnail, FileType.Image, 1440, true);
+            });
+
             // Return empty list instead of 404 — student simply has no courses yet
             return Ok(myCourses);
         }

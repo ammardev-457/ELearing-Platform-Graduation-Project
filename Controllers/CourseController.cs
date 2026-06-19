@@ -74,6 +74,13 @@ namespace ELProject.Controllers
         public async Task<IActionResult> GetAllCourses([FromQuery] PaginationParameters paginationParams)
         {
             var result = await _unitOfWork.Courses.GetAllCoursesAsync(paginationParams.PagedNumber, paginationParams.PagedSize);
+
+            result.Items.ForEach(async c =>
+            {
+                if (!string.IsNullOrEmpty(c.Thumbnail))
+                    c.Thumbnail = await fileService.GenerateSasUrlAsync(c.Thumbnail, FileType.Image, 1440, true);
+            });
+
             return Ok(result.Items.Select(c => new
             {
                 id = c.Id,
@@ -104,12 +111,14 @@ namespace ELProject.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != course.UserId) return Unauthorized("User Not Authenticated");
 
+            var thumbnail = await fileService.GenerateSasUrlAsync(course.Thumbnail!, FileType.Image, 1440);
+
             return Ok(new
             {
+                thumbnail,
                 title = course.Title,
                 shortDescription = course.ShortDescription,
                 longDescription = course.LongDescription,
-                thumbnail = course.Thumbnail,
                 createdDate = course.CreatedDate,
                 level = course.Level,
                 price = course.Price,
@@ -123,6 +132,12 @@ namespace ELProject.Controllers
         public async Task<IActionResult> GetCourseData(int courseId)
         {
             var course = await _unitOfWork.Courses.GetCourseWithDataAsync(courseId);
+            
+            if (course == null)
+                return NotFound("Course Not Found");
+
+            var thumbnail = await fileService.GenerateSasUrlAsync(course.Thumbnail!, FileType.Image, 1440);
+            course.Thumbnail = thumbnail;
 
             return Ok(course);
         }
@@ -135,6 +150,12 @@ namespace ELProject.Controllers
                 c => c.CategoryId == categoryId,
                 paginationParams.PagedNumber,
                 paginationParams.PagedSize);
+
+            result.Items.ForEach(async c =>
+            {
+                if (!string.IsNullOrEmpty(c.Thumbnail))
+                    c.Thumbnail = await fileService.GenerateSasUrlAsync(c.Thumbnail, FileType.Image, 1440, true);
+            });
 
             return Ok(result.Items.Select(c => new
             {
@@ -160,6 +181,12 @@ namespace ELProject.Controllers
                 c => c.UserId == instructorId,
                 paginationParams.PagedNumber,
                 paginationParams.PagedSize);
+
+            result.Items.ForEach(async c =>
+            {
+                if (!string.IsNullOrEmpty(c.Thumbnail))
+                    c.Thumbnail = await fileService.GenerateSasUrlAsync(c.Thumbnail, FileType.Image, 1440, true);
+            });
 
             return Ok(result.Items.Select(c => new
             {
