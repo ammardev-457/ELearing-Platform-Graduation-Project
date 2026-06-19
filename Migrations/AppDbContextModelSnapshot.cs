@@ -275,6 +275,9 @@ namespace ELProject.Migrations
                         .HasColumnType("nvarchar(3)")
                         .HasDefaultValue("EGP");
 
+                    b.Property<string>("PaymentRefernce")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<long?>("PaymobOrderId")
                         .HasColumnType("bigint");
 

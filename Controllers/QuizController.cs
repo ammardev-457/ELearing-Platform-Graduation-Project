@@ -102,9 +102,9 @@ namespace ELProject.Controllers
                 await _unitOfWork.CompleteAsync();
                 return CreatedAtAction(nameof(GetQuizData), new { id = quizId }, null);
             }
-            catch
+            catch(Exception ex)
             {
-                return StatusCode(500, "An error occurred while updating the quiz data.");
+                return StatusCode(500, ex.ToString());
             }
         }
 
@@ -194,7 +194,7 @@ namespace ELProject.Controllers
         }
 
         [Authorize(Roles = "Instructor")]
-        [HttpGet("{id}/all-results")]
+        [HttpGet("{id}/results")]
         public async Task<IActionResult> GetAllQuizResults(int id)
         {
             var results = await _unitOfWork.Quizzes.GetAllStudentResultsAsync(id);
