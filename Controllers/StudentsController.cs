@@ -63,12 +63,10 @@ namespace ELProject.Controllers
         {
             var studentId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            //var profile = await _unitOfWork.Users.GetStudentProfileAsync(studentId);
-
             var studentProfile = await _unitOfWork.Users.UpdateStudentProfile(studentId, dto);
 
             if (studentProfile == null)
-                return Unauthorized("You do not have permission to edit this profile.");
+                return NotFound();
 
             if (dto.Image != null)
             {
