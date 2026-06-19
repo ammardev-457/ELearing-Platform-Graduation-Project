@@ -1,10 +1,11 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using ELProject.Domain.Models;
 
 namespace ELProject.ExternalServices
 {
-    public class PaymobService
+    public class PaymobService : IPaymobGatewayService
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
@@ -13,6 +14,7 @@ namespace ELProject.ExternalServices
             _httpClient = httpClient;
             _configuration = configuration;
         }
+
 
         public async Task<string> CreatePaymentIntentAsync(Order order, ApplicationUser student, string paymentMethod = "Card")
         {
@@ -64,6 +66,73 @@ namespace ELProject.ExternalServices
             // set order.paymob_order.id
             order.PaymobOrderId = doc.RootElement.GetProperty("intention_order_id").GetInt64();
             return doc.RootElement.GetProperty("client_secret").GetString() ?? string.Empty;
+        }
+        public async Task<string> CalculateHmac(JsonElement obj, string secret)
+        {
+            string Get(JsonElement root, string path)
+            {
+                try
+                {
+                    var parts = path.Split('.');
+
+                    JsonElement current = root;
+
+                    foreach (var p in parts)
+                    {
+                        if (!current.TryGetProperty(p, out current))
+                            return "";
+                    }
+
+                    return current.ValueKind switch
+                    {
+                        JsonValueKind.String => current.GetString() ?? "",
+                        JsonValueKind.Number => current.ToString(),
+                        JsonValueKind.True => "true",
+                        JsonValueKind.False => "false",
+                        _ => ""
+                    };
+                }
+                catch
+                {
+                    return "";
+                }
+            }
+
+            var fields = new List<string>
+            {
+                "amount_cents",
+                "created_at",
+                "currency",
+                "error_occured",
+                "has_parent_transaction",
+                "id", // obj.id
+                "integration_id",
+                "is_3d_secure",
+                "is_auth",
+                "is_capture",
+                "is_refunded",
+                "is_standalone_payment",
+                "is_voided",
+                "order.id",
+                "owner",
+                "pending",
+                "source_data.pan",
+                "source_data.sub_type",
+                "source_data.type",
+                "success"
+            };
+
+            var sb = new StringBuilder();
+
+            foreach (var field in fields)
+                sb.Append(Get(obj, field));
+
+            var data = sb.ToString();
+
+            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(secret));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+
+            return await Task.FromResult(Convert.ToHexStringLower(hash));
         }
     }
 }

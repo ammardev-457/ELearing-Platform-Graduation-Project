@@ -6,6 +6,7 @@ using ELProject.DataAccess.Repositories.Interfaces;
 using ELProject.Domain.Models;
 using ELProject.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,34 +15,52 @@ namespace ELProject.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class PaymentController(PaymobService paymobService, IUnitOfWork unitOfWork, IConfiguration configuration, UserManager<ApplicationUser> userManager) : ControllerBase
+    public class PaymentController : ControllerBase
     {
-        private readonly PaymobService _paymobService = paymobService;
-        private readonly UserManager<ApplicationUser> _userManager = userManager;
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly IConfiguration _configuration = configuration;
+        private readonly PaymobService _paymobService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IConfiguration _configuration;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        [HttpPost("create-intent/{courseId}")]
-        public async Task<IActionResult> CreatePaymentIntent(int courseId)  // تم تصحيح الاسم
+        public PaymentController(
+            PaymobService paymobService,
+            IUnitOfWork unitOfWork,
+            IConfiguration configuration,
+            UserManager<ApplicationUser> userManager)
         {
-            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized(new { message = "Invalid User Identity" });
+            _paymobService = paymobService;
+            _unitOfWork = unitOfWork;
+            _configuration = configuration;
+            _userManager = userManager;
+        }
+
+        // =========================
+        // CREATE PAYMENT INTENT
+        // =========================
+        [HttpPost("create-intent/{courseId}")]
+        public async Task<IActionResult> CreatePaymentIntent(int courseId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("Invalid User Identity");
 
             var student = await _userManager.FindByIdAsync(userId);
-            if (student == null) return Unauthorized("User Not Authenticated");
+            if (student == null)
+                return Unauthorized("User Not Authenticated");
 
             var alreadyEnrolled = await _unitOfWork.Enrollments.IsFoundAsync(userId, courseId);
             if (alreadyEnrolled)
                 return BadRequest("Already enrolled in this course.");
 
             var course = await _unitOfWork.Courses.GetByIdAsync(courseId);
-            if (course == null) return NotFound("Course not found.");
+            if (course == null)
+                return NotFound("Course not found.");
 
             var order = new Order
             {
                 StudentId = userId,
                 CourseId = course.Id,
-                PaymentRefernce = Guid.NewGuid().ToString(),
+                PaymentRefernce = Guid.NewGuid().ToString(), // 🔥 MAIN LINK KEY
                 Amount = (long)Math.Round(course.Price * 100),
                 Status = Domain.Enums.PaymentStatus.Pending.ToString(),
                 CreatedAt = DateTime.UtcNow
@@ -50,97 +69,118 @@ namespace ELProject.Controllers
             await _unitOfWork.Orders.AddAsync(order);
             await _unitOfWork.CompleteAsync();
 
+            // 🔥 IMPORTANT: Paymob mapping uses PaymentReference
             var clientSecret = await _paymobService.CreatePaymentIntentAsync(order, student);
-
-            _unitOfWork.Orders.Update(order);
-            await _unitOfWork.CompleteAsync();
 
             return Ok(new { client_secret = clientSecret });
         }
 
+        // =========================
+        // WEBHOOK CALLBACK
+        // =========================
         [AllowAnonymous]
         [HttpPost("callback")]
         public async Task<IActionResult> HandleWebhook([FromQuery] string hmac, [FromBody] JsonElement payload)
         {
             try
             {
-                if (!payload.TryGetProperty("obj", out var obj)) return Ok();
+                if (!payload.TryGetProperty("obj", out var obj))
+                    return Ok();
 
-                string hmacSecret = _configuration["Paymob:HmacSecret"]!;
-                string calculatedHmac = CalculateHmac(obj, hmacSecret);
+                var hmacSecret = _configuration["Paymob:HmacSecret"]!;
+                var calculatedHmac = await _paymobService.CalculateHmac(obj, hmacSecret);
 
-                if (calculatedHmac != hmac)
-                {
-                    Console.WriteLine("HMAC Mismatch - Unauthorized Request!");
+                if (!string.Equals(calculatedHmac, hmac, StringComparison.OrdinalIgnoreCase))
                     return Unauthorized();
-                }
 
-                string? myOrderIdStr = null;
+                // =========================
+                // GET PAYMENT REFERENCE
+                // =========================
+                string? paymentReference = null;
+
                 if (obj.TryGetProperty("order", out var orderNode))
                 {
                     if (orderNode.TryGetProperty("merchant_order_id", out var mId))
-                        myOrderIdStr = mId.GetString();
+                        paymentReference = mId.GetString();
                 }
 
-                bool isSuccess = obj.GetProperty("success").GetBoolean();
-                long paymobTransactionId = obj.GetProperty("id").GetInt64();
+                if (string.IsNullOrEmpty(paymentReference))
+                    return Ok();
 
-                if (long.TryParse(myOrderIdStr, out long orderId))
+                var isSuccess = obj.GetProperty("success").GetBoolean();
+                var paymobTransactionId = obj.GetProperty("id").GetInt64();
+
+                // =========================
+                // FIND ORDER BY REFERENCE
+                // =========================
+                var order = await _unitOfWork.Orders
+                    .FindOrderByPaymentReferenceAsync(paymentReference);
+
+                if (order == null)
+                    return Ok();
+
+                // =========================
+                // IDPOTENT PROTECTION
+                // =========================
+                if (order.Status != Domain.Enums.PaymentStatus.Pending.ToString())
+                    return Ok();
+
+                if (!isSuccess)
                 {
-                    var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+                    order.Status = "Failed";
+                    order.UpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.Orders.Update(order);
 
-                    if (order != null && order.Status == Domain.Enums.PaymentStatus.Pending.ToString())
-                    {
-                        if (isSuccess)
-                        {
-                            order.Status = Domain.Enums.PaymentStatus.Success.ToString();
-                            order.UpdatedAt = DateTime.UtcNow;
-                            _unitOfWork.Orders.Update(order);
-
-                            await _unitOfWork.Transactions.AddAsync(new Transaction
-                            {
-                                OrderId = order.Id,
-                                TransactionId = paymobTransactionId.ToString(),
-                                Amount = obj.GetProperty("amount_cents").GetInt64(),
-                                Status = "Success",
-                                CreatedAt = DateTime.UtcNow
-                            });
-
-                            var existingEnroll = await _unitOfWork.Enrollments.ExistsAsync(order.StudentId, order.CourseId);
-                            if (existingEnroll == null)
-                            {
-                                await _unitOfWork.Enrollments.AddAsync(new Enrollment
-                                {
-                                    StudentId = order.StudentId,
-                                    CourseId = order.CourseId,
-                                    OrderId = order.Id,
-                                    EnrollDate = DateTime.UtcNow,
-                                    Progress = 0,
-                                    IsCompleted = false
-                                });
-                            }
-
-                            await _unitOfWork.CompleteAsync();
-                            Console.WriteLine($"DONE: Order {orderId} Paid & Student Enrolled.");
-                        }
-                        else
-                        {
-                            order.Status = "Failed";
-                            _unitOfWork.Orders.Update(order);
-                            await _unitOfWork.CompleteAsync();
-                        }
-                    }
+                    await _unitOfWork.CompleteAsync();
+                    return Ok();
                 }
+
+                // =========================
+                // SUCCESS FLOW
+                // =========================
+                order.Status = Domain.Enums.PaymentStatus.Success.ToString();
+                order.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Orders.Update(order);
+
+                await _unitOfWork.Transactions.AddAsync(new Transaction
+                {
+                    OrderId = order.Id,
+                    TransactionId = paymobTransactionId.ToString(),
+                    Amount = obj.GetProperty("amount_cents").GetInt64(),
+                    Status = "Success",
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                var alreadyEnrolledFinal =
+                    await _unitOfWork.Enrollments.IsFoundAsync(order.StudentId, order.CourseId);
+
+                if (!alreadyEnrolledFinal)
+                {
+                    await _unitOfWork.Enrollments.AddAsync(new Enrollment
+                    {
+                        StudentId = order.StudentId,
+                        CourseId = order.CourseId,
+                        OrderId = order.Id,
+                        EnrollDate = DateTime.UtcNow,
+                        Progress = 0,
+                        IsCompleted = false
+                    });
+                }
+
+                await _unitOfWork.CompleteAsync();
 
                 return Ok();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in Webhook: {ex.Message}");
-                return Ok();
+                Console.WriteLine(ex.Message, ex.StackTrace);
+                return StatusCode(500);
             }
         }
 
+        // =========================
+        // PAYMENT STATUS (FRONTEND)
+        // =========================
         [AllowAnonymous]
         [HttpGet("status")]
         public IActionResult PaymentStatus([FromQuery] string success)
@@ -150,73 +190,16 @@ namespace ELProject.Controllers
                 return Ok(new
                 {
                     Status = "Success",
-                    Message = "Course purchased successfully! You can start watching now."
+                    Message = "Course purchased successfully!"
                 });
             }
 
             return BadRequest(new
             {
                 Status = "Failed",
-                Message = "Payment failed. Please try again or contact support."
+                Message = "Payment failed."
             });
         }
 
-        private string CalculateHmac(JsonElement obj, string hmacSecret)
-        {
-            string GetVal(JsonElement element, string prop)
-            {
-                if (!element.TryGetProperty(prop, out var val) || val.ValueKind == JsonValueKind.Null)
-                    return "";
-
-                return val.ValueKind switch
-                {
-                    JsonValueKind.True => "true",
-                    JsonValueKind.False => "false",
-                    JsonValueKind.String => val.GetString() ?? "",
-                    JsonValueKind.Number => val.ToString()!,
-                    _ => ""
-                };
-            }
-
-            StringBuilder sb = new StringBuilder();
-
-            sb.Append(GetVal(obj, "amount_cents"));
-            sb.Append(GetVal(obj, "created_at"));
-            sb.Append(GetVal(obj, "currency"));
-            sb.Append(GetVal(obj, "error_occurred"));         
-            sb.Append(GetVal(obj, "has_parent_profile"));       
-            sb.Append(GetVal(obj, "id"));
-            sb.Append(GetVal(obj, "integration_id"));
-            sb.Append(GetVal(obj, "is_3d_secure"));
-            sb.Append(GetVal(obj, "is_auth"));
-            sb.Append(GetVal(obj, "is_capture"));
-            sb.Append(GetVal(obj, "is_refunded"));
-            sb.Append(GetVal(obj, "is_standalone_payment"));
-            sb.Append(GetVal(obj, "is_voided"));
-
-            if (obj.TryGetProperty("order", out var order) && order.ValueKind != JsonValueKind.Null)
-                sb.Append(GetVal(order, "id"));
-
-            sb.Append(GetVal(obj, "owner"));
-            sb.Append(GetVal(obj, "pending"));
-
-            if (obj.TryGetProperty("source_data", out var sd) && sd.ValueKind != JsonValueKind.Null)
-            {
-                sb.Append(GetVal(sd, "pan"));
-                sb.Append(GetVal(sd, "sub_type"));
-                sb.Append(GetVal(sd, "type"));
-            }
-
-            sb.Append(GetVal(obj, "success"));
-
-            string concatenatedString = sb.ToString();
-            Console.WriteLine("Concatenated String for HMAC: " + concatenatedString);
-
-            var keyBytes = Encoding.UTF8.GetBytes(hmacSecret);
-            using var hmacSha512 = new HMACSHA512(keyBytes);
-            var hashBytes = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(concatenatedString));
-
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-        }
     }
 }
