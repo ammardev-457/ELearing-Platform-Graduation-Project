@@ -24,7 +24,7 @@ namespace ELProject.ExternalServices
                 amount = order.Amount,
                 currency = "EGP",
                 payment_methods = new[] { integrationId },
-                special_reference = order.Id.ToString(),
+                special_reference = order.PaymentRefernce,
                 billing_data = new
                 {
                     first_name = student.UserName ?? "Student",
@@ -54,7 +54,13 @@ namespace ELProject.ExternalServices
 
             var responseString = await response.Content.ReadAsStringAsync();
 
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(responseString);
+            }
+
             using var doc = JsonDocument.Parse(responseString);
+
             // set order.paymob_order.id
             order.PaymobOrderId = doc.RootElement.GetProperty("intention_order_id").GetInt64();
             return doc.RootElement.GetProperty("client_secret").GetString() ?? string.Empty;

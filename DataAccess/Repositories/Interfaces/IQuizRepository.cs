@@ -18,5 +18,7 @@ namespace ELProject.DataAccess.Repositories.Interfaces
         public Task<IEnumerable<Quiz>> GetQuizzesByCourseIdAsync(int courseId);
         public Task<string> UpdateQuizAsync(int quizId, string instructorId, QuizDto dto);
         public  Task<string> DeleteQuizAsync(string instructorId, int quizId);
+
+        public Task<bool> IsExistsAsync(int quizId);
     }
 }

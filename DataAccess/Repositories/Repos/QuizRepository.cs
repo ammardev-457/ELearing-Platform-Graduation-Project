@@ -114,17 +114,21 @@ namespace ELProject.DataAccess.Repositories.Repos
             .FirstOrDefaultAsync();
 
         public async Task<List<AllStudentResultDto>> GetAllStudentResultsAsync(int quizId) => await context.StudentQuizzes
+            .AsNoTracking()
             .Where(sq => sq.QuizId == quizId)
-            .Include(sq => sq.Quiz)
-            .Include(sq => sq.User)
-            .Select(sq => new AllStudentResultDto
+            .Select(sq => new
             {
-                StudentId = sq.UserId,
-                StudentName = sq.User.Name,
-                Score = sq.Score,
-                MaxPossibleScore = sq.Quiz.Questions.Sum(q => q.Points),
-                Percentage = (double)sq.Score / sq.Quiz.Questions.Sum(q => q.Points) * 100,
-                SubmitDate = sq.SubmitDate
+                sq,
+                MaxScore = sq.Quiz.Questions.Sum(q => q.Points)
+            })
+            .Select(x => new AllStudentResultDto
+            {
+                StudentId = x.sq.UserId,
+                StudentName = x.sq.User.Name,
+                Score = x.sq.Score,
+                MaxPossibleScore = x.MaxScore,
+                Percentage = x.MaxScore == 0 ? 0 : (double) x.sq.Score / x.MaxScore * 100,
+                SubmitDate = x.sq.SubmitDate
             })
             .ToListAsync();
 
@@ -182,6 +186,11 @@ namespace ELProject.DataAccess.Repositories.Repos
             context.Quizzes.Remove(quiz);
             await context.SaveChangesAsync();
             return "Quiz deleted successfully";
+        }
+
+        public async Task<bool> IsExistsAsync(int quizId)
+        {
+            return await context.Quizzes.AnyAsync(q => q.Id == quizId);
         }
     }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ELProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260513200253_UpdateDB")]
-    partial class UpdateDB
+    [Migration("20260618214932_combineMigrations")]
+    partial class combineMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -278,6 +278,9 @@ namespace ELProject.Migrations
                         .HasColumnType("nvarchar(3)")
                         .HasDefaultValue("EGP");
 
+                    b.Property<string>("PaymentRefernce")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<long?>("PaymobOrderId")
                         .HasColumnType("bigint");
 
@@ -303,8 +306,7 @@ namespace ELProject.Migrations
 
                     b.HasIndex("PaymobOrderId");
 
-                    b.HasIndex("StudentId", "CourseId")
-                        .IsUnique();
+                    b.HasIndex("StudentId");
 
                     b.ToTable("Orders");
                 });
@@ -319,6 +321,9 @@ namespace ELProject.Migrations
 
                     b.Property<string>("CorrectAnswer")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Explanation")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Points")

@@ -41,6 +41,7 @@ namespace ELProject.Controllers
             {
                 StudentId = userId,
                 CourseId = course.Id,
+                PaymentRefernce = Guid.NewGuid().ToString(),
                 Amount = (long)Math.Round(course.Price * 100),
                 Status = Domain.Enums.PaymentStatus.Pending.ToString(),
                 CreatedAt = DateTime.UtcNow
@@ -70,7 +71,7 @@ namespace ELProject.Controllers
 
                 if (calculatedHmac != hmac)
                 {
-                    Console.WriteLine("⚠️ HMAC Mismatch - Unauthorized Request!");
+                    Console.WriteLine("HMAC Mismatch - Unauthorized Request!");
                     return Unauthorized();
                 }
 
