@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ELProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260618214932_combineMigrations")]
-    partial class combineMigrations
+    [Migration("20260620202132_AllMigrations")]
+    partial class AllMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
